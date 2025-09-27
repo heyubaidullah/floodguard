@@ -12,50 +12,43 @@ const fastify = Fastify({ logger: true })
 // Enable CORS
 await fastify.register(cors, { origin: env.CORS_ORIGIN })
 
-/* ---------- CORE ROUTES ---------- */
-
-// Health
-fastify.get('/health', async () => ({ status: 'ok' }))
-
-// Forecasts
-fastify.get('/forecast', async () => prisma.forecast.findMany())
-
-// Alerts
-fastify.get('/alerts', async () => prisma.alert.findMany())
-
-// DB ping
+// DB ping (simple round-trip to Postgres)
 fastify.get('/db/ping', async () => {
-  // simple round-trip to DB
-  const r = await prisma.$queryRaw`SELECT 1 as ok`
+  const r = await prisma.$queryRaw`SELECT 1 AS ok`
   return { ok: true, result: r }
 })
 
-
-/* ---------- AGENTS ---------- */
-
-// A1 Weather Ingest
-const weatherAgent = new WeatherIngestAgent()
-fastify.get('/weather/ingest', async () => weatherAgent.ingestWeatherData())
-
-// A2 Drain/Grid Watch
-const drainAgent = new DrainWatchAgent(prisma)
-
-// GET /incidents (optional: ?zone=Z2&take=10)
-fastify.get('/incidents', async (request) => {
-  const { zone, take } = request.query ?? {}
-  return drainAgent.listIncidents({
-    zone,
-    take: take ? Number(take) : undefined,
-  })
+// GET /forecast route
+fastify.get('/forecast', async (request, reply) => {
+  const forecasts = await prisma.forecast.findMany()
+  return forecasts
 })
 
-// POST /incidents/report
-fastify.post('/incidents/report', async (request) => {
-  const { type, description, zone, photoUrl } = request.body || {}
-  if (!type || !description || !zone) {
-    return { ok: false, error: 'type, description, and zone are required' }
-  }
-  return drainAgent.createIncident({ type, description, zone, photoUrl })
+// GET /incidents route
+fastify.get('/incidents', async (request, reply) => {
+  const incidents = await prisma.incident.findMany()
+  return incidents
+})
+
+// GET /alerts route
+fastify.get('/alerts', async (request, reply) => {
+  const alerts = await prisma.alert.findMany()
+  return alerts
+})
+
+// POST /incidents/report route
+fastify.post('/incidents/report', async (request, reply) => {
+  const { type, description, zone } = request.body
+
+  const newIncident = await prisma.incident.create({
+    data: {
+      type,
+      description,
+      zone,
+    },
+  })
+
+  return newIncident
 })
 
 // POST /incidents/simulate

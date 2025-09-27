@@ -10,6 +10,12 @@ const fastify = Fastify({ logger: true })
 // Enable CORS
 await fastify.register(cors, { origin: env.CORS_ORIGIN })
 
+// DB ping (simple round-trip to Postgres)
+fastify.get('/db/ping', async () => {
+  const r = await prisma.$queryRaw`SELECT 1 AS ok`
+  return { ok: true, result: r }
+})
+
 // GET /forecast route
 fastify.get('/forecast', async (request, reply) => {
   const forecasts = await prisma.forecast.findMany()

@@ -1,0 +1,20 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.*
+floodguard-backend/.env
+floodguard-frontend/.env
+
+# Build output
+dist/
+build/
+coverage/
+
+# Prisma generated
+.prisma/
+**/.prisma/

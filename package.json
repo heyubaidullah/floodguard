@@ -1,0 +1,19 @@
+{
+    "name": "floodguard-root",
+    "private": true,
+    "workspaces": [
+    "floodguard-backend",
+    "floodguard-frontend"
+    ],
+    "scripts": {
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm --workspace floodguard-backend run dev",
+    "dev:frontend": "npm --workspace floodguard-frontend run dev",
+    "install:all": "npm install",
+    "format": "prettier -w ."
+    },
+    "devDependencies": {
+    "concurrently": "^9.0.1",
+    "prettier": "^3.3.3"
+    }
+    }

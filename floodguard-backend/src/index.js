@@ -43,6 +43,11 @@ fastify.post('/incidents/report', async (request, reply) => {
   return newIncident
 })
 
+// GET /health route (Added)
+fastify.get('/health', async (request, reply) => {
+  return { status: 'ok' }
+})
+
 // Start the server
 fastify.listen({ port: env.PORT, host: '0.0.0.0' }, (err, address) => {
   if (err) {
@@ -53,7 +58,6 @@ fastify.listen({ port: env.PORT, host: '0.0.0.0' }, (err, address) => {
 })
 
 // The following is only for testing purposes
-
 import { WeatherIngestAgent } from './agents/A1_weather.js';
 
 // Instantiate the agent
@@ -64,4 +68,3 @@ fastify.get('/weather/ingest', async (request, reply) => {
   const weatherData = await weatherAgent.ingestWeatherData();
   return weatherData;
 });
-

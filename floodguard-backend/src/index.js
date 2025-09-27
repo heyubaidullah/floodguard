@@ -1,31 +1,53 @@
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import { env } from './env.js';
-import healthRoutes from './routes/health.js';
-import versionRoutes from './routes/version.js';
-import { OrchestratorAgent } from './agents/A0_orchestrator.js';
+import Fastify from 'fastify'
+import cors from '@fastify/cors'
+import { PrismaClient } from '@prisma/client'
+import { env } from './env.js'
 
-const fastify = Fastify({ logger: true });
+const prisma = new PrismaClient()
+
+const fastify = Fastify({ logger: true })
 
 // Enable CORS
-await fastify.register(cors, { origin: env.CORS_ORIGIN });
+await fastify.register(cors, { origin: env.CORS_ORIGIN })
 
-// Routes
-await fastify.register(healthRoutes);
-await fastify.register(versionRoutes);
+// GET /forecast route
+fastify.get('/forecast', async (request, reply) => {
+  const forecasts = await prisma.forecast.findMany()
+  return forecasts
+})
 
-// Minimal /ops/run (demo only; will expand in Phase 3)
-const orchestrator = new OrchestratorAgent();
-fastify.post('/ops/run', async (req, reply) => {
-  const result = await orchestrator.runCycle();
-  return { ok: true, result };
-});
+// GET /incidents route
+fastify.get('/incidents', async (request, reply) => {
+  const incidents = await prisma.incident.findMany()
+  return incidents
+})
 
-// Start server
+// GET /alerts route
+fastify.get('/alerts', async (request, reply) => {
+  const alerts = await prisma.alert.findMany()
+  return alerts
+})
+
+// POST /incidents/report route
+fastify.post('/incidents/report', async (request, reply) => {
+  const { type, description, zone } = request.body
+
+  const newIncident = await prisma.incident.create({
+    data: {
+      type,
+      description,
+      zone,
+    },
+  })
+
+  return newIncident
+})
+
+// Start the server
 fastify.listen({ port: env.PORT, host: '0.0.0.0' }, (err, address) => {
   if (err) {
-    fastify.log.error(err);
-    process.exit(1);
+    fastify.log.error(err)
+    process.exit(1)
   }
-  console.log(`🚀 Backend running at ${address}`);
-});
+  console.log(`🚀 Backend running at ${address}`)
+})

@@ -13,8 +13,8 @@
     "@fastify/cors": "^10.0.1",
     "socket.io": "^4.7.5",
     "socket.io-client": "^4.7.5",
-    "@google-labs/adk": "^0.4.0",
-    "@google-labs/a2a": "^0.1.2",
+    "@dexwox-labs/a2a-node": "^0.x.x",
+    "@kentandrian/google-adk": "^0.x.x",
     "@prisma/client": "^5.18.0"
     },
     "devDependencies": {

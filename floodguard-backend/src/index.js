@@ -43,6 +43,11 @@ fastify.post('/incidents/report', async (request, reply) => {
   return newIncident
 })
 
+// GET /health route (Added)
+fastify.get('/health', async (request, reply) => {
+  return { status: 'ok' }
+})
+
 // Start the server
 fastify.listen({ port: env.PORT, host: '0.0.0.0' }, (err, address) => {
   if (err) {
@@ -51,3 +56,15 @@ fastify.listen({ port: env.PORT, host: '0.0.0.0' }, (err, address) => {
   }
   console.log(`🚀 Backend running at ${address}`)
 })
+
+// The following is only for testing purposes
+import { WeatherIngestAgent } from './agents/A1_weather.js';
+
+// Instantiate the agent
+const weatherAgent = new WeatherIngestAgent();
+
+// Route to trigger the weather data ingestion
+fastify.get('/weather/ingest', async (request, reply) => {
+  const weatherData = await weatherAgent.ingestWeatherData();
+  return weatherData;
+});

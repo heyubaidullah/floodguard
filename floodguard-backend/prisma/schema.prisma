@@ -1,13 +1,13 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"   // Use "sqlite" if you're using SQLite
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Enums
 enum IncidentType {
   drain
   citizen
@@ -16,35 +16,22 @@ enum IncidentType {
 enum Audience {
   ops
   public
-  ops
-  public
 }
 
 enum RiskTier {
   SAFE
   MEDIUM
   HIGH
-  SAFE
-  MEDIUM
-  HIGH
 }
 
-// Models
 model Forecast {
   id         String   @id @default(uuid())
   zone       String
-  rainProb   Float
-  rainAmount Float?
-  riskScore  Float    @default(0)
-  timestamp  DateTime @default(now())
-  id         String   @id @default(uuid())
-  zone       String
-  rainProb   Float
-  rainAmount Float?
-  riskScore  Float    @default(0)
+  rainProb   Int
+  rainAmount Int
+  riskScore  Float
   timestamp  DateTime @default(now())
 
-  @@index([zone, timestamp])
   @@index([zone, timestamp])
 }
 
@@ -55,14 +42,7 @@ model Incident {
   zone        String
   photoUrl    String?
   timestamp   DateTime     @default(now())
-  id          String       @id @default(uuid())
-  type        IncidentType
-  description String
-  zone        String
-  photoUrl    String?
-  timestamp   DateTime     @default(now())
 
-  @@index([zone, timestamp])
   @@index([zone, timestamp])
 }
 
@@ -73,14 +53,7 @@ model SocialIncident {
   zone      String
   riskFlag  Boolean  @default(false)
   timestamp DateTime @default(now())
-  id        String   @id @default(uuid())
-  text      String
-  user      String
-  zone      String
-  riskFlag  Boolean  @default(false)
-  timestamp DateTime @default(now())
 
-  @@index([zone, timestamp])
   @@index([zone, timestamp])
 }
 
@@ -90,28 +63,13 @@ model Alert {
   message   String
   riskTier  RiskTier
   createdAt DateTime @default(now())
-  id        String   @id @default(uuid())
-  audience  Audience
-  message   String
-  riskTier  RiskTier
-  createdAt DateTime @default(now())
 }
 
 model OpsLog {
-  id         String   @id @default(uuid())
-  cycleId    String
-  step       String
-  status     String
-  durationMs Int
-  timestamp  DateTime @default(now())
-  id         String   @id @default(uuid())
-  cycleId    String
-  step       String
-  status     String
-  durationMs Int
-  timestamp  DateTime @default(now())
-
-  @@index([cycleId, timestamp])
-  @@index([cycleId, timestamp])
+  id        String   @id @default(uuid())
+  cycleId   String
+  step      String
+  status    String
+  duration  Int
+  timestamp DateTime @default(now())
 }
-

@@ -11,9 +11,9 @@ CREATE TYPE "RiskTier" AS ENUM ('SAFE', 'MEDIUM', 'HIGH');
 CREATE TABLE "Forecast" (
     "id" TEXT NOT NULL,
     "zone" TEXT NOT NULL,
-    "rainProb" DOUBLE PRECISION NOT NULL,
-    "rainAmount" DOUBLE PRECISION,
-    "riskScore" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "rainProb" INTEGER NOT NULL,
+    "rainAmount" INTEGER NOT NULL,
+    "riskScore" DOUBLE PRECISION NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Forecast_pkey" PRIMARY KEY ("id")
@@ -60,7 +60,7 @@ CREATE TABLE "OpsLog" (
     "cycleId" TEXT NOT NULL,
     "step" TEXT NOT NULL,
     "status" TEXT NOT NULL,
-    "durationMs" INTEGER NOT NULL,
+    "duration" INTEGER NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "OpsLog_pkey" PRIMARY KEY ("id")
@@ -74,6 +74,3 @@ CREATE INDEX "Incident_zone_timestamp_idx" ON "Incident"("zone", "timestamp");
 
 -- CreateIndex
 CREATE INDEX "SocialIncident_zone_timestamp_idx" ON "SocialIncident"("zone", "timestamp");
-
--- CreateIndex
-CREATE INDEX "OpsLog_cycleId_timestamp_idx" ON "OpsLog"("cycleId", "timestamp");

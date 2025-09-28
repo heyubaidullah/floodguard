@@ -20,7 +20,7 @@ export class DrainWatchAgent {
         console.log('📥 weatherAlert received:', payload)
 
         if (payload.rainProb > 80) {
-          await this.simulateBatch(payload.zone || 'Z1')
+          await this.simulateBatch(payload.zone || 'Miami Beach')
           console.log('✅ incidents simulated based on high rainfall')
         }
         message.ack()
@@ -38,10 +38,10 @@ export class DrainWatchAgent {
     console.log('🟢 DrainWatch listener started')
   }
 
-  async simulateBatch(zone = 'Z2') {
+  async simulateBatch(zone = 'Miami Beach') {
     const batch = [
-      { type: 'drain',   description: `Blocked drain detected in ${zone}`, zone },
-      { type: 'citizen', description: `Citizen report: standing water in ${zone}`, zone }
+      { type: 'drain',   description: `Smart drain sensor detected blockage near ${zone}`, zone },
+      { type: 'citizen', description: `Resident reported standing water building up in ${zone}`, zone }
     ]
     await this.prisma.incident.createMany({ data: batch })
     return this.prisma.incident.findMany({

@@ -57,7 +57,7 @@ fastify.post('/incidents/report', async (request) => {
 // Simulate incidents (helper)
 fastify.post('/incidents/simulate', async (request) => {
   const { zone } = request.body || {}
-  const rows = await drainAgent.simulateBatch(zone || 'Z2')
+  const rows = await drainAgent.simulateBatch(zone || 'Miami Beach')
   return { ok: true, insertedPreview: rows }
 })
 
@@ -69,10 +69,16 @@ fastify.get('/weather/ingest', async () => {
 })
 
 // Simple orchestrator cycle: call A1 and return demo payload
-fastify.get('/cycle/run', async () => {
-  const weather = await weatherAgent.ingestWeatherData()
-  const cycle = await orchestratorAgent.runCycle()
-  return { ok: true, cycle, published: weather }
+fastify.get('/cycle/run', async (request, reply) => {
+  try {
+    const weather = await weatherAgent.ingestWeatherData()
+    const cycle = await orchestratorAgent.runCycle()
+    return { ok: true, cycle, published: weather }
+  } catch (error) {
+    fastify.log.error(error)
+    reply.code(500)
+    return { ok: false, error: 'Cycle execution failed', details: error?.message }
+  }
 })
 
 // --- Start & graceful shutdown ---

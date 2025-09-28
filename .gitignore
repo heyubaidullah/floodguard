@@ -1,4 +1,54 @@
+# Node
 node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
 .env
+.env.*
+floodguard-backend/.env
+floodguard-frontend/.env
+*.env
+private/
+*.key
+*.pem
+*.p12
+*.json.enc
+
+# Build output
 dist/
-*.log
+build/
+coverage/
+
+# Prisma generated
+.prisma/
+**/.prisma/
+
+# macOS
+.DS_Store
+
+# Generated Prisma + build cache
+floodguard-backend/prisma/*.db
+floodguard-backend/prisma/dev.db
+dist/
+
+# Editor/OS junk
+.vscode/
+.idea/
+
+# Local env variants
+.env.local
+.env.development.local
+.env.production.local
+
+# Frontend build metadata (Vite/Svelte/Solid sometimes emit this)
+floodguard-frontend/_metadata.json
+
+# Generic local DBs
+*.sqlite
+*.db
+
+# A2A / misc caches (if any)
+**/.cache/
+

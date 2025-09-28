@@ -7,12 +7,15 @@
         "start": "node src/index.js"
     },
     "dependencies": {
+        "@a2a-js/sdk": "^0.3.4",
         "@dexwox-labs/a2a-node": "^0.x.x",
         "@fastify/cors": "^8.5.0",
+        "@google-cloud/pubsub": "^5.2.0",
         "@kentandrian/google-adk": "^0.x.x",
         "@prisma/client": "^5.18.0",
         "axios": "^1.7.7",
-        "dotenv": "^16.4.5",
+        "dotenv": "^16.6.1",
+        "express": "^5.1.0",
         "fastify": "^4.29.1",
         "socket.io": "^4.7.5",
         "socket.io-client": "^4.7.5"

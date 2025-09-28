@@ -9,6 +9,12 @@ pnpm-debug.log*
 .env.*
 floodguard-backend/.env
 floodguard-frontend/.env
+*.env
+private/
+*.key
+*.pem
+*.p12
+*.json.enc
 
 # Build output
 dist/
@@ -18,3 +24,11 @@ coverage/
 # Prisma generated
 .prisma/
 **/.prisma/
+
+# macOS
+.DS_Store
+
+# Generated Prisma + build cache
+floodguard-backend/prisma/*.db
+floodguard-backend/prisma/dev.db
+dist/

@@ -1,60 +1,81 @@
+// src/index.js
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
-import { PrismaClient } from '@prisma/client'
 import { env } from './env.js'
+import { prisma } from './db/prisma.js'
 
-const prisma = new PrismaClient()
+// Agents (Pub/Sub based)
+import { WeatherIngestAgent } from './agents/A1_weather.js'
+import { DrainWatchAgent }   from './agents/A2_drain_grid.js'
+import { OrchestratorAgent } from './agents/A0_orchestrator.js'
 
+// --- Fastify setup ---
 const fastify = Fastify({ logger: true })
 
-// Enable CORS
+// CORS
 await fastify.register(cors, { origin: env.CORS_ORIGIN })
 
-// DB ping (simple round-trip to Postgres)
+// --- Agents ---
+const drainAgent = new DrainWatchAgent(prisma)
+drainAgent.startListenerOnce()                    // start Pub/Sub subscription once
+
+const weatherAgent = new WeatherIngestAgent()
+const orchestratorAgent = new OrchestratorAgent() // placeholder, returns demo payload
+
+// --- Utility / health ---
+fastify.get('/health', async () => ({ status: 'ok' }))
+
+// Quick DB round-trip
 fastify.get('/db/ping', async () => {
   const r = await prisma.$queryRaw`SELECT 1 AS ok`
   return { ok: true, result: r }
 })
 
-// GET /forecast route
-fastify.get('/forecast', async (request, reply) => {
-  const forecasts = await prisma.forecast.findMany()
-  return forecasts
+// --- Forecasts / Incidents / Alerts ---
+fastify.get('/forecast', async () => {
+  return prisma.forecast.findMany()
 })
 
-// GET /incidents route
-fastify.get('/incidents', async (request, reply) => {
-  const incidents = await prisma.incident.findMany()
-  return incidents
+fastify.get('/incidents', async () => {
+  return prisma.incident.findMany()
 })
 
-// GET /alerts route
-fastify.get('/alerts', async (request, reply) => {
-  const alerts = await prisma.alert.findMany()
-  return alerts
+fastify.get('/alerts', async () => {
+  return prisma.alert.findMany()
 })
 
-// POST /incidents/report route
-fastify.post('/incidents/report', async (request, reply) => {
-  const { type, description, zone } = request.body
-
-  const newIncident = await prisma.incident.create({
-    data: {
-      type,
-      description,
-      zone,
-    },
-  })
-
-  return newIncident
+// Create incident
+fastify.post('/incidents/report', async (request) => {
+  const { type, description, zone, photoUrl = null } = request.body || {}
+  if (!type || !description || !zone) {
+    return { ok: false, error: 'type, description, and zone are required' }
+  }
+  const row = await prisma.incident.create({ data: { type, description, zone, photoUrl } })
+  return row
 })
 
-// GET /health route (Added)
-fastify.get('/health', async (request, reply) => {
-  return { status: 'ok' }
+// Simulate incidents (helper)
+fastify.post('/incidents/simulate', async (request) => {
+  const { zone } = request.body || {}
+  const rows = await drainAgent.simulateBatch(zone || 'Z2')
+  return { ok: true, insertedPreview: rows }
 })
 
-// Start the server
+// --- Pub/Sub test routes ---
+// Publish a weather alert (A1 -> topic)
+fastify.get('/weather/ingest', async () => {
+  const published = await weatherAgent.ingestWeatherData()
+  return { ok: true, published }
+})
+
+// Simple orchestrator cycle: call A1 and return demo payload
+fastify.get('/cycle/run', async () => {
+  const weather = await weatherAgent.ingestWeatherData()
+  const cycle = await orchestratorAgent.runCycle()
+  return { ok: true, cycle, published: weather }
+})
+
+// --- Start & graceful shutdown ---
 fastify.listen({ port: env.PORT, host: '0.0.0.0' }, (err, address) => {
   if (err) {
     fastify.log.error(err)
@@ -63,14 +84,20 @@ fastify.listen({ port: env.PORT, host: '0.0.0.0' }, (err, address) => {
   console.log(`🚀 Backend running at ${address}`)
 })
 
-// The following is only for testing purposes
-import { WeatherIngestAgent } from './agents/A1_weather.js';
+process.on('SIGINT', async () => {
+  try {
+    await fastify.close()
+    await prisma.$disconnect()
+  } finally {
+    process.exit(0)
+  }
+})
 
-// Instantiate the agent
-const weatherAgent = new WeatherIngestAgent();
-
-// Route to trigger the weather data ingestion
-fastify.get('/weather/ingest', async (request, reply) => {
-  const weatherData = await weatherAgent.ingestWeatherData();
-  return weatherData;
-});
+process.on('SIGTERM', async () => {
+  try {
+    await fastify.close()
+    await prisma.$disconnect()
+  } finally {
+    process.exit(0)
+  }
+})

@@ -1,70 +1,36 @@
-import Fastify from 'fastify'
-import cors from '@fastify/cors'
-import { PrismaClient } from '@prisma/client'
-import { env } from './env.js'
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import { env } from './env.js';
 
-const prisma = new PrismaClient()
+import healthRoutes from './routes/health.js';
+import versionRoutes from './routes/version.js';
+import forecastRoutes from './routes/forecast.js';
+import incidentsRoutes from './routes/incidents.js';
+import socialRoutes from './routes/social.js';
+import alertsRoutes from './routes/alerts.js';
+import agentRoutes from './routes/agents.js';
 
-const fastify = Fastify({ logger: true })
+import { registerAllAgents } from './agents/register.js';
+import { getTraceAndClear } from './a2a/bus.js';
 
-// Enable CORS
-await fastify.register(cors, { origin: env.CORS_ORIGIN })
+const fastify = Fastify({ logger: true });
+await fastify.register(cors, { origin: env.CORS_ORIGIN });
 
-// GET /forecast route
-fastify.get('/forecast', async (request, reply) => {
-  const forecasts = await prisma.forecast.findMany()
-  return forecasts
-})
+// Bring A2A agents online
+registerAllAgents();
 
-// GET /incidents route
-fastify.get('/incidents', async (request, reply) => {
-  const incidents = await prisma.incident.findMany()
-  return incidents
-})
+await fastify.register(healthRoutes);
+await fastify.register(versionRoutes);
+await fastify.register(forecastRoutes);
+await fastify.register(incidentsRoutes);
+await fastify.register(socialRoutes);
+await fastify.register(alertsRoutes);
+await fastify.register(agentRoutes);
 
-// GET /alerts route
-fastify.get('/alerts', async (request, reply) => {
-  const alerts = await prisma.alert.findMany()
-  return alerts
-})
+// Inspect last cycle's A2A trace (for demo)
+fastify.get('/ops/trace', async () => getTraceAndClear());
 
-// POST /incidents/report route
-fastify.post('/incidents/report', async (request, reply) => {
-  const { type, description, zone } = request.body
-
-  const newIncident = await prisma.incident.create({
-    data: {
-      type,
-      description,
-      zone,
-    },
-  })
-
-  return newIncident
-})
-
-// GET /health route (Added)
-fastify.get('/health', async (request, reply) => {
-  return { status: 'ok' }
-})
-
-// Start the server
 fastify.listen({ port: env.PORT, host: '0.0.0.0' }, (err, address) => {
-  if (err) {
-    fastify.log.error(err)
-    process.exit(1)
-  }
-  console.log(`🚀 Backend running at ${address}`)
-})
-
-// The following is only for testing purposes
-import { WeatherIngestAgent } from './agents/A1_weather.js';
-
-// Instantiate the agent
-const weatherAgent = new WeatherIngestAgent();
-
-// Route to trigger the weather data ingestion
-fastify.get('/weather/ingest', async (request, reply) => {
-  const weatherData = await weatherAgent.ingestWeatherData();
-  return weatherData;
+  if (err) { fastify.log.error(err); process.exit(1); }
+  console.log(`🚀 Backend running at ${address}`);
 });

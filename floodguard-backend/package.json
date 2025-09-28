@@ -9,9 +9,10 @@
     "dependencies": {
         "@dexwox-labs/a2a-node": "^0.x.x",
         "@fastify/cors": "^8.5.0",
+        "@google/generative-ai": "^0.24.1",
         "@kentandrian/google-adk": "^0.x.x",
         "@prisma/client": "^5.18.0",
-        "axios": "^1.7.7",
+        "axios": "^1.12.2",
         "dotenv": "^16.4.5",
         "fastify": "^4.29.1",
         "socket.io": "^4.7.5",

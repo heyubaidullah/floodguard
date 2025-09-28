@@ -1,8 +1,12 @@
 import { prisma } from '../db/prisma.js'
 
-
 export default async function socialRoutes(fastify) {
-fastify.get('/social', async () => {
-return prisma.socialIncident.findMany({ orderBy: { timestamp: 'desc' }, take: 50 })
-})
+  fastify.get('/social', async (req) => {
+    const zone = req.query?.zone
+    return prisma.socialIncident.findMany({
+      where: zone ? { zone: String(zone) } : undefined,
+      orderBy: { timestamp: 'desc' },
+      take: 50,
+    })
+  })
 }

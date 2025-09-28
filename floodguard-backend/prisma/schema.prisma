@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -27,9 +28,9 @@ enum RiskTier {
 model Forecast {
   id         String   @id @default(uuid())
   zone       String
-  rainProb   Int
-  rainAmount Int
-  riskScore  Float
+  rainProb   Float
+  rainAmount Float?
+  riskScore  Float    @default(0)
   timestamp  DateTime @default(now())
 
   @@index([zone, timestamp])
@@ -41,6 +42,9 @@ model Incident {
   description String
   zone        String
   photoUrl    String?
+  locationName String?
+  latitude    Float?
+  longitude   Float?
   timestamp   DateTime     @default(now())
 
   @@index([zone, timestamp])
@@ -66,10 +70,12 @@ model Alert {
 }
 
 model OpsLog {
-  id        String   @id @default(uuid())
-  cycleId   String
-  step      String
-  status    String
-  duration  Int
-  timestamp DateTime @default(now())
+  id         String   @id @default(uuid())
+  cycleId    String
+  step       String
+  status     String
+  durationMs Int
+  timestamp  DateTime @default(now())
+
+  @@index([cycleId, timestamp])
 }

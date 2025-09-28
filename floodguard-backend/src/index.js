@@ -9,6 +9,7 @@ import { WeatherIngestAgent } from './agents/A1_weather.js'
 import { DrainWatchAgent }   from './agents/A2_drain_grid.js'
 import { SocialMediaAgent }  from './agents/A3_social.js'
 import { OrchestratorAgent } from './agents/A0_orchestrator.js'
+import { RiskFusionAgent }   from './agents/A4_risk_fusion.js'   // <-- A4
 
 const fastify = Fastify({ logger: true })
 
@@ -16,10 +17,11 @@ const fastify = Fastify({ logger: true })
 await fastify.register(cors, { origin: env.CORS_ORIGIN })
 
 /* ---------- AGENTS ---------- */
-const weatherAgent     = new WeatherIngestAgent()
-const drainAgent       = new DrainWatchAgent(prisma)
-drainAgent.startListenerOnce() // Pub/Sub subscriber
-const socialAgent      = new SocialMediaAgent(prisma)
+const weatherAgent      = new WeatherIngestAgent()
+const drainAgent        = new DrainWatchAgent(prisma)
+if (drainAgent.startListenerOnce) drainAgent.startListenerOnce() // Pub/Sub subscriber
+const socialAgent       = new SocialMediaAgent(prisma)
+const riskAgent         = new RiskFusionAgent()                   // <-- A4 singleton
 const orchestratorAgent = new OrchestratorAgent({
   prisma,
   weather: weatherAgent,
@@ -76,6 +78,13 @@ fastify.post('/social/simulate-batch', async (request) => {
   const { zone, n } = request.body || {}
   const rows = await socialAgent.simulateBatch(zone || 'Z1', Number(n) || 3)
   return { ok: true, rows }
+})
+
+/* ---------- RISK (A4) ---------- */
+// GET /risk/map → GeoJSON FeatureCollection with properties {zone, tier, riskScore, ...}
+fastify.get('/risk/map', async () => {
+  const geojson = await riskAgent.getRiskMap()
+  return geojson
 })
 
 /* ---------- DEMO HELPERS ---------- */

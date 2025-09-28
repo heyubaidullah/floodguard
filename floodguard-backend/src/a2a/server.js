@@ -10,6 +10,7 @@ import { A2AExpressApp } from '@a2a-js/sdk/server/express'
 import { WeatherIngestAgent } from '../agents/A1_weather.js'
 import { DrainWatchAgent }   from '../agents/A2_drain_grid.js'
 import { SocialMediaAgent }  from '../agents/A3_social.js'
+import { RiskFusionAgent }   from '../agents/A4_risk_fusion.js'
 
 const PORT = process.env.A2A_PORT ? Number(process.env.A2A_PORT) : 4500
 const PUBLIC_URL = process.env.A2A_PUBLIC_URL || `http://localhost:${PORT}`
@@ -17,9 +18,9 @@ const PUBLIC_URL = process.env.A2A_PUBLIC_URL || `http://localhost:${PORT}`
 // Public identity + skills
 const floodguardCard = {
   name: 'FloodGuard Agent',
-  description: 'Runs weather ingest, simulates drain/social, and exposes controls via A2A.',
+  description: 'Runs weather ingest, simulates drain/social, computes risk, and exposes controls via A2A.',
   protocolVersion: '0.3.0',
-  version: '0.2.0',
+  version: '0.3.0',
   url: PUBLIC_URL,
   capabilities: {
     pushNotifications: false,
@@ -30,6 +31,7 @@ const floodguardCard = {
     { id: 'listIncidents',   name: 'List Incidents',   description: 'Returns latest incidents' },
     { id: 'listSocial',      name: 'List Social',      description: 'Returns latest social signals' },
     { id: 'simulateSocial',  name: 'Simulate Social',  description: 'Adds synthetic social posts for a zone' },
+    { id: 'showRisk',        name: 'Show Risk',        description: 'Returns fused risk GeoJSON (A4)' }, // <-- new
   ],
 }
 
@@ -39,19 +41,20 @@ class FloodguardExecutor {
     this.weather = new WeatherIngestAgent()
     this.drain   = new DrainWatchAgent(prisma)
     this.social  = new SocialMediaAgent(prisma)
-    this.drain.startListenerOnce()
+    this.risk    = new RiskFusionAgent()
+    if (this.drain.startListenerOnce) this.drain.startListenerOnce()
   }
 
   async execute(requestContext, eventBus) {
     const text = (getUserText(requestContext) || '').toLowerCase().trim()
 
-    // --- robust, order-safe intent detection ---
-    const wantsListSoc = /(list|show|get)\s+(social|socials|social\s+posts?)/.test(text)
-    const wantsSimSoc  = /(simulate|sim)\s+(social|socials)/.test(text)
-    const wantsListInc = /(list|show|get)\s+incidents?/.test(text)
-    const wantsIngest  = /\b(ingest|weather)\b/.test(text)
+    const wantsIngest   = /\b(ingest|weather)\b/.test(text)
+    const wantsListInc  = /\blist\b.*\bincidents?\b/.test(text)
+    const wantsListSoc  = /\blist\b.*\bsocial\b/.test(text)
+    const wantsSimSoc   = /\bsim(ulate|)\b.*\bsocial\b/.test(text)
+    const wantsRisk     = /(show|list|get)\s+(risk|risk\s*map)/.test(text)
 
-    // zone like "z2" → "Z2" (default Z1)
+    // very simple zone extractor: look for "z<number>"
     const zoneMatch = text.match(/\bz(\d+)\b/i)
     const zone = zoneMatch ? `Z${zoneMatch[1]}` : 'Z1'
 
@@ -65,6 +68,8 @@ class FloodguardExecutor {
         payload = await this.social.listSocial({ zone, take: 10 })
       } else if (wantsSimSoc) {
         payload = await this.social.simulateBatch(zone, 3)
+      } else if (wantsRisk) {
+        payload = await this.risk.getRiskMap()
       } else {
         // default “cycle”
         const published = await this.weather.ingestWeatherData()

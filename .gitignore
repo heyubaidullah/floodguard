@@ -32,3 +32,23 @@ coverage/
 floodguard-backend/prisma/*.db
 floodguard-backend/prisma/dev.db
 dist/
+
+# Editor/OS junk
+.vscode/
+.idea/
+
+# Local env variants
+.env.local
+.env.development.local
+.env.production.local
+
+# Frontend build metadata (Vite/Svelte/Solid sometimes emit this)
+floodguard-frontend/_metadata.json
+
+# Generic local DBs
+*.sqlite
+*.db
+
+# A2A / misc caches (if any)
+**/.cache/
+

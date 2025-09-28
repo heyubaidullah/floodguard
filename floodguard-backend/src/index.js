@@ -10,6 +10,8 @@ import { DrainWatchAgent }   from './agents/A2_drain_grid.js'
 import { SocialMediaAgent }  from './agents/A3_social.js'
 import { OrchestratorAgent } from './agents/A0_orchestrator.js'
 import { RiskFusionAgent }   from './agents/A4_risk_fusion.js'   // <-- A4
+import { CommsAgent } from './agents/A6_comms.js'
+
 
 const fastify = Fastify({ logger: true })
 
@@ -28,6 +30,11 @@ const orchestratorAgent = new OrchestratorAgent({
   drain:   drainAgent,
   social:  socialAgent,
 })
+const commsAgent        = new CommsAgent({
+  prisma,
+  riskAgent,
+  geminiApiKey: process.env.GEMINI_API_KEY, // optional
+})
 
 /* ---------- HEALTH / DB ---------- */
 fastify.get('/health', async () => ({ status: 'ok' }))
@@ -40,7 +47,7 @@ fastify.get('/db/ping', async () => {
 /* ---------- CORE DATA ---------- */
 fastify.get('/forecast', async () => prisma.forecast.findMany())
 fastify.get('/incidents', async () => prisma.incident.findMany())
-fastify.get('/alerts',   async () => prisma.alert.findMany())
+fastify.get('/alerts',   async () => prisma.alert.findMany({ orderBy: { createdAt: 'desc' }, take: 20 }))
 
 fastify.post('/incidents/report', async (request) => {
   const { type, description, zone, photoUrl = null } = request.body || {}
@@ -103,6 +110,15 @@ fastify.get('/risk/preview', async () => {
     .sort((a, b) => (b.riskScore - a.riskScore) || a.zone.localeCompare(b.zone))
   return { ok: true, rows }
 })
+
+/* ---------- COMMS (A6) ---------- */
+// POST /comms/alert  { "zones": ["Z1","Z2"] }  (zones optional)
+fastify.post('/comms/alert', async (request) => {
+  const { zones } = request.body || {}
+  const rows = await commsAgent.generateAndPersistAlerts({ zones })
+  return { ok: true, alerts: rows }
+})
+
 
 
 /* ---------- DEMO HELPERS ---------- */

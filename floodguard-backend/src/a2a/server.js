@@ -9,6 +9,8 @@ import { A2AExpressApp } from '@a2a-js/sdk/server/express'
 
 import { WeatherIngestAgent } from '../agents/A1_weather.js'
 import { DrainWatchAgent }   from '../agents/A2_drain_grid.js'
+import { SocialMediaAgent }  from '../agents/A3_social.js'
+import { RiskFusionAgent }   from '../agents/A4_risk_fusion.js'
 
 const PORT = process.env.A2A_PORT ? Number(process.env.A2A_PORT) : 4500
 const PUBLIC_URL = process.env.A2A_PUBLIC_URL || `http://localhost:${PORT}`
@@ -16,44 +18,60 @@ const PUBLIC_URL = process.env.A2A_PUBLIC_URL || `http://localhost:${PORT}`
 // Public identity + skills
 const floodguardCard = {
   name: 'FloodGuard Agent',
-  description: 'Runs weather ingest and triggers drain watch; exposes FloodGuard controls via A2A.',
+  description: 'Runs weather ingest, simulates drain/social, computes risk, and exposes controls via A2A.',
   protocolVersion: '0.3.0',
-  version: '0.1.0',
+  version: '0.3.0',
   url: PUBLIC_URL,
-
-  // ✅ add this block
   capabilities: {
-    pushNotifications: false,   // minimal required field for current SDK
+    pushNotifications: false,
   },
-
   skills: [
-    { id: 'runCycle',      name: 'Run Cycle',      description: 'Runs a demo cycle: weather → drain simulate' },
-    { id: 'ingestWeather', name: 'Ingest Weather', description: 'Publishes a weather alert (A1)' },
-    { id: 'listIncidents', name: 'List Incidents', description: 'Returns latest incidents' },
+    { id: 'runCycle',        name: 'Run Cycle',        description: 'Runs a demo cycle: weather → drain simulate' },
+    { id: 'ingestWeather',   name: 'Ingest Weather',   description: 'Publishes a weather alert (A1)' },
+    { id: 'listIncidents',   name: 'List Incidents',   description: 'Returns latest incidents' },
+    { id: 'listSocial',      name: 'List Social',      description: 'Returns latest social signals' },
+    { id: 'simulateSocial',  name: 'Simulate Social',  description: 'Adds synthetic social posts for a zone' },
+    { id: 'showRisk',        name: 'Show Risk',        description: 'Returns fused risk GeoJSON (A4)' }, // <-- new
   ],
 }
 
-
-// Minimal executor object (no base class needed)
+// Minimal executor object
 class FloodguardExecutor {
   constructor() {
     this.weather = new WeatherIngestAgent()
     this.drain   = new DrainWatchAgent(prisma)
-    this.drain.startListenerOnce()
+    this.social  = new SocialMediaAgent(prisma)
+    this.risk    = new RiskFusionAgent()
+    if (this.drain.startListenerOnce) this.drain.startListenerOnce()
   }
 
   async execute(requestContext, eventBus) {
-    const text = getUserText(requestContext) || ''
-    const wantsIngest = /\bingest\b|\bweather\b/i.test(text)
-    const wantsList   = /\blist\b|\bincidents?\b/i.test(text)
-    let payload
+    const text = (getUserText(requestContext) || '').toLowerCase().trim()
 
+    const wantsIngest   = /\b(ingest|weather)\b/.test(text)
+    const wantsListInc  = /\blist\b.*\bincidents?\b/.test(text)
+    const wantsListSoc  = /\blist\b.*\bsocial\b/.test(text)
+    const wantsSimSoc   = /\bsim(ulate|)\b.*\bsocial\b/.test(text)
+    const wantsRisk     = /(show|list|get)\s+(risk|risk\s*map)/.test(text)
+
+    // very simple zone extractor: look for "z<number>"
+    const zoneMatch = text.match(/\bz(\d+)\b/i)
+    const zone = zoneMatch ? `Z${zoneMatch[1]}` : 'Z1'
+
+    let payload
     try {
       if (wantsIngest) {
         payload = await this.weather.ingestWeatherData()
-      } else if (wantsList) {
+      } else if (wantsListInc) {
         payload = await this.drain.listIncidents({ take: 10 })
+      } else if (wantsListSoc) {
+        payload = await this.social.listSocial({ zone, take: 10 })
+      } else if (wantsSimSoc) {
+        payload = await this.social.simulateBatch(zone, 3)
+      } else if (wantsRisk) {
+        payload = await this.risk.getRiskMap()
       } else {
+        // default “cycle”
         const published = await this.weather.ingestWeatherData()
         payload = { message: 'cycle complete', published }
       }
@@ -97,29 +115,21 @@ const handler = new Server.DefaultRequestHandler(
 const appBuilder = new A2AExpressApp(handler)
 const expressApp = appBuilder.setupRoutes(express())
 
-
-// ✅ add JSON body parsing (needed for POST)
+// JSON parsing
 expressApp.use(express.json())
 
-// ✅ add a minimal A2A-compatible message endpoint
+// Minimal message endpoint compatible with our client
 expressApp.post('/a2a/message', async (req, res) => {
   try {
     const text =
       req.body?.parts?.find(p => p?.kind === 'text')?.text ??
-      req.body?.text ??
-      ''
+      req.body?.text ?? ''
 
-    // Build a minimal RequestContext
     const requestContext = {
       contextId: uuidv4(),
-      message: {
-        kind: 'message',
-        role: 'user',
-        parts: [{ kind: 'text', text }],
-      },
+      message: { kind: 'message', role: 'user', parts: [{ kind: 'text', text }] },
     }
 
-    // Collect executor outputs via an in-memory event bus
     const events = []
     const eventBus = {
       publish: (msg) => events.push(msg),
@@ -127,7 +137,6 @@ expressApp.post('/a2a/message', async (req, res) => {
     }
 
     await agentExecutor.execute(requestContext, eventBus)
-
     return res.status(200).json({ ok: true, events })
   } catch (err) {
     return res.status(500).json({ ok: false, error: err?.message || String(err) })
@@ -138,4 +147,3 @@ expressApp.listen(PORT, () => {
   console.log(`🟢 A2A server ready on ${PUBLIC_URL}`)
   console.log(`    Agent Card: ${PUBLIC_URL}/.well-known/agent-card.json`)
 })
-

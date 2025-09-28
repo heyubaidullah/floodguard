@@ -1,5 +1,4 @@
 // A2_drain_grid.js
-export class DrainGridAgent { /* Phase 3 */ }
 import { prisma } from '../db/prisma.js'
 import { resolveZones } from '../lib/zones.js'
 import { Task } from '../adk/runtime.js'

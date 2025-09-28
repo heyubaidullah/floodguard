@@ -87,6 +87,24 @@ fastify.get('/risk/map', async () => {
   return geojson
 })
 
+// GET /risk/preview → compact per-zone table for quick checks
+fastify.get('/risk/preview', async () => {
+  const geo = await riskAgent.getRiskMap()
+  const rows = geo.features
+    .map(f => ({
+      zone: f.properties.zone,
+      tier: f.properties.tier,
+      riskScore: Number(f.properties.riskScore.toFixed(2)),
+      incidents: f.properties.incidentCount,
+      social: f.properties.socialCount,
+      rainProb: f.properties.rainProb,
+    }))
+    // sort by risk desc, then zone
+    .sort((a, b) => (b.riskScore - a.riskScore) || a.zone.localeCompare(b.zone))
+  return { ok: true, rows }
+})
+
+
 /* ---------- DEMO HELPERS ---------- */
 fastify.get('/weather/ingest', async () => {
   const published = await weatherAgent.ingestWeatherData()

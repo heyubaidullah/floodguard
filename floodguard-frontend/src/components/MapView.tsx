@@ -50,7 +50,7 @@ export default function MapView({ refreshKey, theme, selectedLocation, onLocatio
         'HIGH', '#ef4444',
         'MEDIUM', '#f59e0b',
         'SAFE', '#10b981',
-        /* other */ '#9ca3af',
+        '#9ca3af',
       ],
       'circle-stroke-width': 1.5,
       'circle-stroke-color': theme === 'dark' ? '#f9fafb' : '#111827',
@@ -97,7 +97,7 @@ export default function MapView({ refreshKey, theme, selectedLocation, onLocatio
 
   return (
     <Card title="Risk Map">
-      <div className="h-[420px] rounded-xl overflow-hidden">
+      <div className="map-touch-container" style={{ height: 'clamp(280px, 45vh, 480px)', borderRadius: '0.75rem', overflow: 'hidden' }}>
         <Map
           mapboxAccessToken={TOKEN}
           {...viewState}
@@ -107,6 +107,8 @@ export default function MapView({ refreshKey, theme, selectedLocation, onLocatio
           cursor={resolving ? 'progress' : 'pointer'}
           mapStyle={theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'}
           style={{ width: '100%', height: '100%' }}
+          touchZoomRotate={true}
+          dragPan={true}
         >
           {geojson && (
             <Source id="risk" type="geojson" data={geojson}>

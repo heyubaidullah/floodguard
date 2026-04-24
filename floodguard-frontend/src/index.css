@@ -5,11 +5,38 @@
 @layer base {
   body {
     @apply bg-slate-100 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 16px;
+  }
+
+  body.sidebar-open {
+    overflow: hidden;
+  }
+
+  p, li, td, th, label, input, textarea, select, button {
+    font-size: max(14px, 1em);
   }
 }
-
 
 /* scrollbar subtle */
 *::-webkit-scrollbar { height: 8px; width: 8px; }
 *::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 8px; }
 *::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* Smooth momentum scrolling on iOS */
+.scroll-smooth-touch {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+/* Map container — let Mapbox handle its own touch events */
+.map-touch-container .mapboxgl-canvas {
+  touch-action: none;
+}
+
+/* Touch-friendly active states */
+@media (hover: none) {
+  button:active, a:active {
+    opacity: 0.7;
+  }
+}

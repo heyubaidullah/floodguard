@@ -32,7 +32,6 @@ export default function AgentStatusBoard() {
   const [isLive, setIsLive] = useState(true)
   const pollRef = useRef<number | null>(null)
 
-  // Poll /ops/trace safely every 2s
   useEffect(() => {
     async function tick() {
       const batch = await getTrace()
@@ -51,8 +50,7 @@ export default function AgentStatusBoard() {
     return () => { if (pollRef.current) window.clearInterval(pollRef.current) }
   }, [isLive])
 
-  // Derive per-agent statuses from recent envelopes
-  const { statusMap, mode } = useMemo(() => {
+  const { statusMap } = useMemo(() => {
     const windowMs = 20000
     const now = Date.now()
     const recent = trace.filter(t => {
@@ -81,8 +79,7 @@ export default function AgentStatusBoard() {
       else                           status[k] = 'idle'
     }
 
-    const mode = (Date.now() - lastStamp) < 6000 ? 'Looping' : 'One-shot'
-    return { statusMap: status, mode }
+    return { statusMap: status }
   }, [trace, lastStamp])
 
   const Chip = ({ s }: { s: Status }) => {
@@ -113,7 +110,7 @@ export default function AgentStatusBoard() {
       actions={
         <button
           onClick={() => setIsLive(v => !v)}
-          className={`rounded-lg border px-2 py-1 text-xs font-semibold transition ${
+          className={`rounded-lg border px-3 min-h-[44px] text-xs font-semibold transition ${
             isLive
               ? 'border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-500/40 dark:hover:text-emerald-200'
               : 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-400 dark:border-emerald-400 dark:bg-emerald-400 dark:text-slate-900'
@@ -123,14 +120,12 @@ export default function AgentStatusBoard() {
         </button>
       }
     >
-      {/* Short descriptions for phases */}
-      <div className="mb-3 space-y-1 text-xs text-slate-600 dark:text-slate-400">
+      <div className="mb-3 space-y-1 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
         <div><strong>Parallel</strong> — A1/A2/A3 ingest weather, incident reports, and social signals in parallel.</div>
         <div><strong>Fuse</strong> — A4 combines signals → computes risk score & tier per zone.</div>
         <div><strong>Comms</strong> — A6 generates Ops & Public alerts if any zone is HIGH.</div>
       </div>
 
-      {/* Looping vs one-shot badge */}
       <div className="mb-3 text-xs">
         <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-lg border ${
           (Date.now() - lastStamp) < 6000
@@ -141,25 +136,26 @@ export default function AgentStatusBoard() {
         </div>
       </div>
 
-      {/* Per-agent cards */}
-      <div className="grid grid-cols-1 gap-2">
-        <AnimatePresence initial={false}>
-          {AGENTS.map(a => (
-            <motion.div
-              key={a.key}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="rounded-xl border border-slate-200 bg-white/80 p-3 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10"
-            >
-              <div className="flex items-center gap-2">
-                <div className="font-medium text-slate-800 dark:text-slate-100">{a.label}</div>
-                <div className="ml-auto"><Chip s={statusMap[a.key] as Status} /></div>
-              </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{a.desc}</div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div className="overflow-y-auto max-h-[400px] scroll-smooth-touch">
+        <div className="grid grid-cols-1 gap-2">
+          <AnimatePresence initial={false}>
+            {AGENTS.map(a => (
+              <motion.div
+                key={a.key}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="rounded-xl border border-slate-200 bg-white/80 p-3 transition hover:border-emerald-200 hover:bg-emerald-50 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10"
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="font-medium text-sm text-slate-800 dark:text-slate-100">{a.label}</div>
+                  <div className="ml-auto"><Chip s={statusMap[a.key] as Status} /></div>
+                </div>
+                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{a.desc}</div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
     </Card>
   )

@@ -107,10 +107,12 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
     onLocationChange({ ...selectedLocation, zoneId: normalized })
   }
 
+  const inputClass = "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 min-h-[44px] text-sm text-slate-700 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+
   return (
     <>
       <Card title="Controls">
-        <div className="grid grid-cols-3 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
           <div>
             <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Incidents</label>
             <input
@@ -118,7 +120,7 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
               min={0}
               value={incidentsTarget}
               onChange={e => setIncidentsTarget(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={inputClass}
             />
           </div>
           <div>
@@ -128,7 +130,7 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
               min={0}
               value={socialTarget}
               onChange={e => setSocialTarget(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={inputClass}
             />
           </div>
           <div>
@@ -139,15 +141,15 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
               step={500}
               value={intervalMs}
               onChange={e => setIntervalMs(Number(e.target.value))}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={inputClass}
             />
           </div>
         </div>
 
         <div className="mt-3 grid grid-cols-3 gap-2 text-sm font-medium">
-          <button onClick={runOnce} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2 text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md"><RefreshCw className="h-4 w-4" />Run Cycle</button>
-          <button onClick={startLoopHandler} className="flex items-center justify-center gap-2 rounded-xl bg-sky-600 py-2 text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md"><Play className="h-4 w-4" />Start</button>
-          <button onClick={stopLoopHandler} className="flex items-center justify-center gap-2 rounded-xl bg-rose-600 py-2 text-white shadow-sm transition hover:bg-rose-700 hover:shadow-md"><Square className="h-4 w-4" />Stop</button>
+          <button onClick={runOnce} className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md active:bg-emerald-800"><RefreshCw className="h-4 w-4 shrink-0" /><span className="truncate">Run</span></button>
+          <button onClick={startLoopHandler} className="flex items-center justify-center gap-1.5 rounded-xl bg-sky-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md active:bg-sky-800"><Play className="h-4 w-4 shrink-0" /><span className="truncate">Start</span></button>
+          <button onClick={stopLoopHandler} className="flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-rose-700 hover:shadow-md active:bg-rose-800"><Square className="h-4 w-4 shrink-0" /><span className="truncate">Stop</span></button>
         </div>
 
         <div className="mt-5 space-y-3 text-sm">
@@ -157,29 +159,30 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
               <input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
                 placeholder="Search city, address, postcode"
-                className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={`${inputClass} flex-1 mt-0`}
               />
               <button
                 type="button"
                 onClick={handleSearch}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 transition hover:border-emerald-300 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-500/40 dark:hover:text-emerald-200"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white min-h-[44px] px-3 text-slate-600 transition hover:border-emerald-300 hover:text-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-emerald-500/40 dark:hover:text-emerald-200"
               >
                 <Search className="h-4 w-4" />
               </button>
             </div>
             {isSearching && <div className="mt-2 text-xs text-slate-500">Searching…</div>}
             {searchResults.length > 0 && (
-              <ul className="mt-2 max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              <ul className="mt-2 max-h-48 overflow-auto rounded-lg border border-slate-200 bg-white text-xs shadow-sm dark:border-slate-700 dark:bg-slate-900 scroll-smooth-touch">
                 {searchResults.map(result => (
                   <li key={result.id ?? `${result.latitude}-${result.longitude}`}>
                     <button
                       onClick={() => applyLocation(result)}
-                      className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                      className="flex w-full items-start gap-2 min-h-[44px] px-3 py-2.5 text-left hover:bg-emerald-50 active:bg-emerald-100 dark:hover:bg-emerald-500/10"
                     >
                       <span className="font-medium text-slate-700 dark:text-slate-200">{result.label}</span>
                       {result.postalCode && (
-                        <span className="ml-auto text-slate-500 dark:text-slate-400">{result.postalCode}</span>
+                        <span className="ml-auto text-slate-500 dark:text-slate-400 shrink-0">{result.postalCode}</span>
                       )}
                     </button>
                   </li>
@@ -188,13 +191,12 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-2">
               <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Selected location</label>
               <div className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
-                <div className="font-medium text-sm">{selectedLocation.label}</div>
-                <div>Lat: {selectedLocation.latitude.toFixed(4)}</div>
-                <div>Lon: {selectedLocation.longitude.toFixed(4)}</div>
+                <div className="font-medium text-sm truncate">{selectedLocation.label}</div>
+                <div>Lat: {selectedLocation.latitude.toFixed(4)} · Lon: {selectedLocation.longitude.toFixed(4)}</div>
               </div>
             </div>
             <div>
@@ -202,7 +204,7 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
               <input
                 value={zone}
                 onChange={e => handleZoneInput(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-700 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                className={inputClass}
               />
             </div>
           </div>
@@ -212,13 +214,13 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
             <input
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-slate-700 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={inputClass}
             />
           </div>
         </div>
 
         <div className="mt-3">
-          <button onClick={report} className="flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md dark:bg-slate-700 dark:hover:bg-slate-600"><Send className="h-4 w-4" />Report Incident</button>
+          <button onClick={report} className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-slate-900 min-h-[44px] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 hover:shadow-md active:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600"><Send className="h-4 w-4 shrink-0" />Report Incident</button>
         </div>
       </Card>
 

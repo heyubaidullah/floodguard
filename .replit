@@ -60,6 +60,10 @@ externalPort = 3000
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 5001
+externalPort = 3002
+
 [deployment]
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "node floodguard-backend/src/index.js & npx serve -s floodguard-frontend/dist -l 5000"]

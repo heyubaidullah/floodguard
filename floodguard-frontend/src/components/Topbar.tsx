@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Activity, Menu, Moon, PanelsTopLeft, Sun, X } from 'lucide-react'
+import { Activity, LogOut, Menu, Moon, PanelsTopLeft, Sun, X } from 'lucide-react'
 
 type NavItem = {
   id: string
@@ -11,9 +11,11 @@ type TopbarProps = {
   onToggleTheme: () => void
   onTogglePanel: () => void
   sections: NavItem[]
+  userEmail?: string | null
+  onLogout?: () => void
 }
 
-export default function Topbar({ theme, onToggleTheme, onTogglePanel, sections }: TopbarProps) {
+export default function Topbar({ theme, onToggleTheme, onTogglePanel, sections, userEmail, onLogout }: TopbarProps) {
   const [navOpen, setNavOpen] = useState(false)
 
   const handleNavClick = (id: string) => {
@@ -81,6 +83,20 @@ export default function Topbar({ theme, onToggleTheme, onTogglePanel, sections }
             <PanelsTopLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Ops</span>
           </button>
+
+          {userEmail && onLogout && (
+            <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 dark:border-slate-700 pl-3">
+              <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[140px]">{userEmail}</span>
+              <button
+                onClick={onLogout}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3 py-2 min-h-[44px] text-sm font-medium text-slate-600 transition hover:border-rose-300 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-rose-500/40 dark:hover:text-rose-300"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -103,6 +119,15 @@ export default function Topbar({ theme, onToggleTheme, onTogglePanel, sections }
                 <span className="text-xs text-slate-400">View</span>
               </button>
             ))}
+            {userEmail && onLogout && (
+              <button
+                onClick={onLogout}
+                className="flex w-full items-center gap-2 rounded-xl px-3 min-h-[44px] text-sm font-medium text-rose-600 transition hover:bg-rose-50 active:bg-rose-100 dark:text-rose-400 dark:hover:bg-rose-500/10"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out ({userEmail})
+              </button>
+            )}
           </div>
         </div>
       </div>

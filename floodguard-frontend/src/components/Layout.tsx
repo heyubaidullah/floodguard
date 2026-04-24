@@ -1,8 +1,9 @@
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
 import MetricsOverview from './MetricsOverview'
+import Footer from './Footer'
 import type { SelectedLocation } from '../types/location'
 
 type LayoutProps = {
@@ -15,10 +16,13 @@ type LayoutProps = {
   onToggleTheme: () => void
   selectedLocation: SelectedLocation
   refreshKey: number
+  userEmail?: string | null
+  onLogout?: () => void
 }
 
-export default function Layout({ map, agents, controls, events, alerts, theme, onToggleTheme, selectedLocation, refreshKey }: LayoutProps) {
+export default function Layout({ map, agents, controls, events, alerts, theme, onToggleTheme, selectedLocation, refreshKey, userEmail, onLogout }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
 
   const sections = useMemo(() => ([
     { id: 'overview', label: 'Overview' },
@@ -34,10 +38,12 @@ export default function Layout({ map, agents, controls, events, alerts, theme, o
         onToggleTheme={onToggleTheme}
         onTogglePanel={() => setSidebarOpen(true)}
         sections={sections}
+        userEmail={userEmail}
+        onLogout={onLogout}
       />
 
       <div className="relative flex flex-1 min-h-0">
-        <main className="flex-1 overflow-y-auto scroll-smooth-touch">
+        <main ref={mainRef} className="flex-1 overflow-y-auto scroll-smooth-touch">
           <div className="mx-auto flex h-full max-w-7xl flex-col gap-4 sm:gap-6 px-3 sm:px-4 py-4 sm:py-6">
 
             {/* Overview metrics */}
@@ -75,6 +81,7 @@ export default function Layout({ map, agents, controls, events, alerts, theme, o
               {alerts}
             </section>
 
+            <Footer scrollContainer={mainRef} />
           </div>
         </main>
 

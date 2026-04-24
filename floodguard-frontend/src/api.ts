@@ -1,7 +1,7 @@
 import axios from 'axios'
 import type { SelectedLocation } from './types/location'
 
-const BASE = import.meta.env.VITE_API_BASE as string
+const BASE = import.meta.env.VITE_API_BASE || '/api'
 
 export const api = axios.create({
   baseURL: BASE,

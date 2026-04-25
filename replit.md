@@ -74,7 +74,7 @@ cd floodguard-backend && npx prisma migrate deploy
 ### Bring-Your-Own-Key (BYOK)
 - In Live AI mode, users can enter their own Gemini API key in the Controls panel
 - Key is stored in `localStorage` as `fg_gemini_key`
-- Axios interceptor injects the key as `x-gemini-key` header on every request
+- Axios interceptor injects the key as `x-gemini-key` header only on AI-triggering routes (`/ops/run`, `/ops/loop/start`, `/ops/ai-status`) — not on data-read endpoints (least-privilege)
 - Backend reads `x-gemini-key` header and wraps the cycle in `AsyncLocalStorage` context
 - `llmClient.js` checks `getRequestGeminiKey()` before falling back to `env.GEMINI_API_KEY`
 - Key is cleared from localStorage on logout

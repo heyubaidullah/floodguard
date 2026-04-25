@@ -211,16 +211,9 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
             <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>
-                No Gemini API key configured — AI agents will fall back to heuristics. Enter your key below, or{' '}
-                <a
-                  href="https://github.com/your-org/floodguard#self-hosting"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100"
-                >
-                  self-host on GitHub
-                </a>{' '}
-                and set <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/40">GEMINI_API_KEY</code> in your environment.
+                No Gemini API key configured — AI agents will fall back to heuristics. Enter your key below, or set{' '}
+                <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/40">GEMINI_API_KEY</code>{' '}
+                as an environment variable when self-hosting.
               </span>
             </div>
           )}

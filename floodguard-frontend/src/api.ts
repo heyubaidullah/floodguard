@@ -8,10 +8,13 @@ export const api = axios.create({
   timeout: 8000,
 })
 
-// Inject BYOK Gemini key from localStorage into every request when present
+// Routes that actually need the BYOK Gemini key (AI-triggering + status check)
+const AI_ROUTES = ['/ops/run', '/ops/loop/start', '/ops/ai-status']
+
+// Inject BYOK Gemini key only for AI-triggering endpoints (least-privilege)
 api.interceptors.request.use((config) => {
   const key = localStorage.getItem('fg_gemini_key')?.trim()
-  if (key) {
+  if (key && config.url && AI_ROUTES.some(r => config.url!.startsWith(r))) {
     config.headers['x-gemini-key'] = key
   }
   return config

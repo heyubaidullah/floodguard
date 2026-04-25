@@ -48,11 +48,15 @@ const ALERTS = [
  * Uses $queryRawUnsafe/$executeRawUnsafe to bypass Prisma 5.x binary Float encoding issues.
  */
 export async function seedDemoData() {
-  // Idempotency check: if demo forecast records already exist, skip seeding
-  const existing = await prisma.$queryRawUnsafe(
-    `SELECT id FROM "Forecast" WHERE zone LIKE 'DEMO-%' LIMIT 1`
-  )
-  if (existing.length > 0) {
+  // Idempotency check: verify ALL four demo tables are fully populated
+  const [forecasts, incidents, social, alerts] = await Promise.all([
+    prisma.$queryRawUnsafe(`SELECT id FROM "Forecast" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
+    prisma.$queryRawUnsafe(`SELECT id FROM "Incident" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
+    prisma.$queryRawUnsafe(`SELECT id FROM "SocialIncident" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
+    prisma.$queryRawUnsafe(`SELECT id FROM "Alert" WHERE message LIKE '%(DEMO-%' LIMIT 1`),
+  ])
+  const isFullySeeded = forecasts.length > 0 && incidents.length > 0 && social.length > 0 && alerts.length > 0
+  if (isFullySeeded) {
     // Demo data is already present — build and return scores without re-seeding
     const scores = {}
     for (const z of ZONES) {
@@ -64,7 +68,11 @@ export async function seedDemoData() {
     return { forecasts: [], alerts: alertRows, scores }
   }
 
-  // First-time seed: clean up any partial records then insert fresh data
+  // First-time seed (or partial state recovery): clean up any stale demo records then re-insert
+  await prisma.$executeRawUnsafe(`DELETE FROM "Alert" WHERE message LIKE '%(DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "SocialIncident" WHERE zone LIKE 'DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "Incident" WHERE zone LIKE 'DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "Forecast" WHERE zone LIKE 'DEMO-%'`)
 
   // Insert forecasts via raw SQL to bypass Float binary encoding issue
   const forecastIds = []

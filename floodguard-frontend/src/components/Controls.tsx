@@ -69,6 +69,15 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
     try {
       if (mode === 'demo') {
         const data = await getDemoSnapshot()
+        // Switch location to DEMO-HIGH so all dashboard panels filter to demo data
+        onLocationChange({
+          label: 'Miami Demo Scenario (Bayshore District)',
+          latitude: 25.7617,
+          longitude: -80.1918,
+          postalCode: 'DEMO',
+          zoneId: 'DEMO-HIGH',
+          source: 'search',
+        })
         onActionComplete(data)
         toast('Demo snapshot loaded')
       } else {
@@ -201,7 +210,11 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
           {isLiveWithoutAi && (
             <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>No Gemini API key available. AI agents will use heuristic fallback. Add your key below for full AI analysis.</span>
+              <span>
+                No Gemini API key configured. AI agents will use heuristic fallback. Add your key below, or if self-hosting set{' '}
+                <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/40">GEMINI_API_KEY</code>{' '}
+                in your server environment.
+              </span>
             </div>
           )}
 

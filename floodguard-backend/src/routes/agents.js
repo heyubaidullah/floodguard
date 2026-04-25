@@ -4,6 +4,7 @@ import { requestContext } from '../lib/requestContext.js';
 import { env } from '../env.js';
 import { getDemoSnapshot } from '../demo/snapshot.js';
 import { seedDemoData } from '../demo/seedDemo.js';
+import { injectTrace } from '../a2a/bus.js';
 
 const orchestrator = new OrchestratorAgent();
 
@@ -22,6 +23,23 @@ export default async function agentRoutes(fastify) {
   fastify.get('/ops/demo', async () => {
     const { scores, alerts } = await seedDemoData()
     const snapshot = getDemoSnapshot()
+
+    // Inject synthetic A2A trace entries so AgentTimeline populates in demo mode
+    const now = new Date()
+    const ts = (offsetMs) => new Date(now.getTime() - offsetMs).toISOString()
+    injectTrace([
+      { dir: '→', env: { a2a: '2.0', id: 'demo-req-a1', from: 'A0', to: 'A1', type: 'request', timestamp: ts(9000), payload: {} } },
+      { dir: '→', env: { a2a: '2.0', id: 'demo-req-a2', from: 'A0', to: 'A2', type: 'request', timestamp: ts(8900), payload: {} } },
+      { dir: '→', env: { a2a: '2.0', id: 'demo-req-a3', from: 'A0', to: 'A3', type: 'request', timestamp: ts(8800), payload: {} } },
+      { dir: '←', env: { a2a: '2.0', id: 'demo-res-a1', from: 'A1', to: 'A0', type: 'response', correlationId: 'demo-req-a1', timestamp: ts(7200), payload: {} } },
+      { dir: '←', env: { a2a: '2.0', id: 'demo-res-a2', from: 'A2', to: 'A0', type: 'response', correlationId: 'demo-req-a2', timestamp: ts(6800), payload: {} } },
+      { dir: '←', env: { a2a: '2.0', id: 'demo-res-a3', from: 'A3', to: 'A0', type: 'response', correlationId: 'demo-req-a3', timestamp: ts(6500), payload: {} } },
+      { dir: '→', env: { a2a: '2.0', id: 'demo-req-a4', from: 'A0', to: 'A4', type: 'request', timestamp: ts(6300), payload: {} } },
+      { dir: '←', env: { a2a: '2.0', id: 'demo-res-a4', from: 'A4', to: 'A0', type: 'response', correlationId: 'demo-req-a4', timestamp: ts(4800), payload: {} } },
+      { dir: '→', env: { a2a: '2.0', id: 'demo-req-a6', from: 'A0', to: 'A6', type: 'request', timestamp: ts(4600), payload: {} } },
+      { dir: '←', env: { a2a: '2.0', id: 'demo-res-a6', from: 'A6', to: 'A0', type: 'response', correlationId: 'demo-req-a6', timestamp: ts(3100), payload: {} } },
+    ])
+
     return { ...snapshot, scores, alerts }
   })
 

@@ -6,6 +6,9 @@
         "dev": "nodemon src/index.js",
         "start": "node src/index.js"
     },
+    "prisma": {
+        "seed": "node prisma/seed.mjs"
+    },
     "dependencies": {
         "@a2a-js/sdk": "^0.3.4",
         "@dexwox-labs/a2a-node": "^0.x.x",

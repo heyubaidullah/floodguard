@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
+const GITHUB_REPO_URL = 'https://github.com/dynelabs/floodguard'
+
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.45, ease: 'easeOut' } }),
@@ -161,7 +163,7 @@ export default function AboutPage() {
                 Try Demo
               </Link>
               <a
-                href="https://github.com"
+                href={GITHUB_REPO_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`inline-flex items-center gap-2 rounded-xl border px-6 py-3 text-sm font-semibold transition ${dark ? 'border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white' : 'border-slate-200 text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}
@@ -381,7 +383,7 @@ export default function AboutPage() {
                     </li>
                   </ul>
                   <a
-                    href="https://github.com"
+                    href={GITHUB_REPO_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${dark ? 'border-slate-600 text-slate-300 hover:border-slate-400 hover:text-white' : 'border-slate-200 text-slate-700 hover:border-slate-400 hover:text-slate-900'}`}

@@ -11,6 +11,7 @@ type ModeContextType = {
   geminiKey: string
   setGeminiKey: (key: string) => void
   clearGeminiKey: () => void
+  resetMode: () => void
 }
 
 const ModeContext = createContext<ModeContextType | null>(null)
@@ -44,8 +45,15 @@ export function ModeProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(LS_GEMINI_KEY)
   }
 
+  function resetMode() {
+    setModeState('live')
+    setGeminiKeyState('')
+    localStorage.removeItem(LS_GEMINI_KEY)
+    localStorage.setItem(LS_MODE_KEY, 'live')
+  }
+
   return (
-    <ModeContext.Provider value={{ mode, setMode, geminiKey, setGeminiKey, clearGeminiKey }}>
+    <ModeContext.Provider value={{ mode, setMode, geminiKey, setGeminiKey, clearGeminiKey, resetMode }}>
       {children}
     </ModeContext.Provider>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useMode } from '../context/ModeContext'
 import { useTheme } from '../context/ThemeContext'
 import Layout from '../components/Layout'
 import MapView from '../components/MapView'
@@ -14,6 +15,7 @@ import { DEFAULT_LOCATION } from '../data/locations'
 
 export default function AdminDashboard() {
   const { isAuthenticated, userEmail, logout } = useAuth()
+  const { resetMode } = useMode()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
@@ -32,6 +34,7 @@ export default function AdminDashboard() {
   }
 
   function handleLogout() {
+    resetMode()
     logout()
     navigate('/')
   }

@@ -2,8 +2,10 @@
  * Writes a realistic demo scenario into the DB so the dashboard
  * can display it via the normal /forecast, /incidents, /social, /alerts endpoints.
  * Uses raw SQL to avoid Prisma 5.x binary-format Float issues (PostgreSQL error 22P03).
+ * Uses crypto.randomUUID() for portable UUID generation (no gen_random_uuid() required).
  */
 import { prisma } from '../db/prisma.js'
+import { randomUUID } from 'crypto'
 
 const ZONES = [
   { id: 'DEMO-HIGH', name: 'Bayshore District', lat: 25.7617, lon: -80.1918, rainProb: 0.82, rainAmount: 18.4, score: 0.87, tier: 'HIGH' },
@@ -54,41 +56,45 @@ export async function seedDemoData() {
   // Insert forecasts via raw SQL to bypass Float binary encoding issue
   const forecastIds = []
   for (const z of ZONES) {
+    const id = randomUUID()
     const rows = await prisma.$queryRawUnsafe(
       `INSERT INTO "Forecast" (id, zone, "rainProb", "rainAmount", "riskScore")
-       VALUES (gen_random_uuid(), $1, $2::float8, $3::float8, $4::float8)
+       VALUES ($1, $2, $3::float8, $4::float8, $5::float8)
        RETURNING id, zone, "rainProb", "rainAmount", "riskScore", timestamp`,
-      z.id, z.rainProb, z.rainAmount, z.score
+      id, z.id, z.rainProb, z.rainAmount, z.score
     )
     forecastIds.push(rows[0])
   }
 
   // Insert incidents via raw SQL
   for (const i of INCIDENTS) {
+    const id = randomUUID()
     await prisma.$executeRawUnsafe(
       `INSERT INTO "Incident" (id, type, description, zone, "locationName")
-       VALUES (gen_random_uuid(), $1::"IncidentType", $2, $3, $4)`,
-      i.type, i.description, i.zone, i.locationName
+       VALUES ($1, $2::"IncidentType", $3, $4, $5)`,
+      id, i.type, i.description, i.zone, i.locationName
     )
   }
 
   // Insert social posts via raw SQL
   for (const s of SOCIAL_POSTS) {
+    const id = randomUUID()
     await prisma.$executeRawUnsafe(
       `INSERT INTO "SocialIncident" (id, text, "user", zone, "riskFlag")
-       VALUES (gen_random_uuid(), $1, $2, $3, $4)`,
-      s.text, s.user, s.zone, s.riskFlag
+       VALUES ($1, $2, $3, $4, $5)`,
+      id, s.text, s.user, s.zone, s.riskFlag
     )
   }
 
   // Insert alerts via raw SQL
   const alertRows = []
   for (const a of ALERTS) {
+    const id = randomUUID()
     const rows = await prisma.$queryRawUnsafe(
       `INSERT INTO "Alert" (id, audience, message, "riskTier")
-       VALUES (gen_random_uuid(), $1::"Audience", $2, $3::"RiskTier")
+       VALUES ($1, $2::"Audience", $3, $4::"RiskTier")
        RETURNING id, audience, message, "riskTier", "createdAt"`,
-      a.audience, a.message, a.riskTier
+      id, a.audience, a.message, a.riskTier
     )
     alertRows.push(rows[0])
   }

@@ -2,7 +2,7 @@ import { OrchestratorAgent } from '../agents/A0_orchestrator.js';
 import { A4_RiskFusion } from '../agents/A4_risk_fusion.js';
 import { requestContext } from '../lib/requestContext.js';
 import { env } from '../env.js';
-import { getDemoSnapshot } from '../demo/snapshot.js';
+import { getDemoSnapshot, getDemoGeoJSON } from '../demo/snapshot.js';
 import { seedDemoData } from '../demo/seedDemo.js';
 import { injectTrace } from '../a2a/bus.js';
 
@@ -77,6 +77,12 @@ export default async function agentRoutes(fastify) {
   // Risk GeoJSON (convenience for frontend maps)
   fastify.get('/risk/map', async (req) => {
     const params = parseLocationQuery(req.query)
+
+    // Short-circuit for demo zones: return pre-built GeoJSON, no AI calls
+    if (params.zoneId && String(params.zoneId).startsWith('DEMO')) {
+      return getDemoGeoJSON()
+    }
+
     const byokKey = (req.headers['x-gemini-key'] ?? '').trim() || null
 
     if (byokKey) {

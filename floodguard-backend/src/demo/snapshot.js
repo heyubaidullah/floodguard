@@ -101,3 +101,18 @@ function makeFeature(zone, score, tier) {
     },
   }
 }
+
+/**
+ * Returns a pre-built GeoJSON FeatureCollection for all demo zones.
+ * Used by /risk/map to avoid calling A4_RiskFusion (and thus Gemini) for DEMO-* zones.
+ */
+export function getDemoGeoJSON() {
+  return {
+    type: 'FeatureCollection',
+    features: [
+      makeFeature(DEMO_ZONES.HIGH,   0.87, 'HIGH'),
+      makeFeature(DEMO_ZONES.MEDIUM, 0.54, 'MEDIUM'),
+      makeFeature(DEMO_ZONES.SAFE,   0.18, 'SAFE'),
+    ],
+  }
+}

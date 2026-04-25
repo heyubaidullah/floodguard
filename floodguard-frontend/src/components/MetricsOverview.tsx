@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { AlertTriangle, BarChart4, Circle, Radar, RefreshCw, ShieldHalf, WifiOff } from 'lucide-react'
+import { AlertTriangle, BarChart4, Circle, Radar, RefreshCw, ShieldCheck, ShieldHalf, WifiOff } from 'lucide-react'
 import { getAlerts, getForecast, getIncidents, getRiskMap } from '../api'
 import Sparkline from './Sparkline'
 import type { SelectedLocation } from '../types/location'
@@ -243,24 +243,50 @@ type MetricTileCriticalProps = {
 
 function MetricTileCritical({ high, medium, low, total, topTier, topScore, currentTier, currentScore, loading }: MetricTileCriticalProps) {
   const severity = currentTier ?? topTier
-  const tone = severity === 'HIGH' ? 'text-rose-500' : severity === 'MEDIUM' ? 'text-amber-500' : 'text-emerald-500'
   const count = severity === 'HIGH' ? high : severity === 'MEDIUM' ? medium : low
   const scorePct = Math.round((currentScore || topScore || 0) * 100)
 
+  const palette = severity === 'HIGH'
+    ? {
+        border: 'border-rose-200/70 dark:border-rose-500/20',
+        bg: 'from-rose-50 via-white to-orange-50 dark:from-rose-950 dark:via-slate-900 dark:to-amber-950',
+        iconBg: 'bg-rose-500 shadow-rose-500/30',
+        glow: 'rgba(251,113,133,0.6)',
+        label: 'text-rose-500',
+        tone: 'text-rose-500',
+      }
+    : severity === 'MEDIUM'
+    ? {
+        border: 'border-amber-200/70 dark:border-amber-500/20',
+        bg: 'from-amber-50 via-white to-yellow-50 dark:from-amber-950 dark:via-slate-900 dark:to-yellow-950',
+        iconBg: 'bg-amber-500 shadow-amber-500/30',
+        glow: 'rgba(251,191,36,0.6)',
+        label: 'text-amber-500',
+        tone: 'text-amber-500',
+      }
+    : {
+        border: 'border-emerald-200/70 dark:border-emerald-500/20',
+        bg: 'from-emerald-50 via-white to-teal-50 dark:from-emerald-950 dark:via-slate-900 dark:to-teal-950',
+        iconBg: 'bg-emerald-500 shadow-emerald-500/30',
+        glow: 'rgba(52,211,153,0.6)',
+        label: 'text-emerald-500',
+        tone: 'text-emerald-500',
+      }
+
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-rose-200/70 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-4 sm:p-5 shadow-sm dark:border-rose-500/20 dark:from-rose-950 dark:via-slate-900 dark:to-amber-950">
-      <div className="pointer-events-none absolute -top-16 -right-12 h-48 w-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle at top, rgba(251,191,36,0.6), transparent 60%)' }} />
+    <div className={`relative overflow-hidden rounded-3xl border ${palette.border} bg-gradient-to-br ${palette.bg} p-4 sm:p-5 shadow-sm`}>
+      <div className="pointer-events-none absolute -top-16 -right-12 h-48 w-48 rounded-full opacity-20" style={{ background: `radial-gradient(circle at top, ${palette.glow}, transparent 60%)` }} />
       <div className="relative z-10 flex items-start justify-between gap-2">
         <div>
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-500 text-white shadow-lg shadow-rose-500/30">
-            <AlertTriangle className="h-5 w-5" />
+          <div className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${palette.iconBg} text-white shadow-lg`}>
+            {severity === 'LOW' ? <ShieldCheck className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
           </div>
           <div className="mt-3 space-y-1">
-            <div className="text-xs font-semibold uppercase tracking-wide text-rose-500">Severity</div>
+            <div className={`text-xs font-semibold uppercase tracking-wide ${palette.label}`}>Severity</div>
             <div className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">{severity} risk</div>
           </div>
         </div>
-        <div className={`text-2xl sm:text-3xl font-semibold ${tone}`}>
+        <div className={`text-2xl sm:text-3xl font-semibold ${palette.tone}`}>
           {loading ? '…' : count}
         </div>
       </div>

@@ -38,7 +38,7 @@ export default function AdminLogin() {
             <Activity className="h-7 w-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            National Emergency Operations Portal
+            FloodGuard Portal
           </h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1.5">
             <ShieldCheck className="h-4 w-4 text-blue-500" />
@@ -113,7 +113,7 @@ export default function AdminLogin() {
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-600">
-          FloodGuard · NWS / FEMA Operations Platform
+          FloodGuard — Developed for NWS / FEMA Emergency Operations
         </p>
 
         <div className="mt-4 text-center">

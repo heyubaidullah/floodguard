@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Activity, LogOut, Menu, Moon, PanelsTopLeft, Sun, X } from 'lucide-react'
 
 type NavItem = {
@@ -56,6 +57,12 @@ export default function Topbar({ theme, onToggleTheme, onTogglePanel, sections, 
               {item.label}
             </button>
           ))}
+          <Link
+            to="/about"
+            className="rounded-full border border-transparent px-3 py-2 min-h-[44px] text-sm font-medium text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-300 dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 inline-flex items-center"
+          >
+            About
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -119,6 +126,14 @@ export default function Topbar({ theme, onToggleTheme, onTogglePanel, sections, 
                 <span className="text-xs text-slate-400">View</span>
               </button>
             ))}
+            <Link
+              to="/about"
+              onClick={() => setNavOpen(false)}
+              className="flex w-full items-center justify-between rounded-xl px-3 min-h-[44px] text-sm font-medium text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100 dark:text-slate-200 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300"
+            >
+              About FloodGuard
+              <span className="text-xs text-slate-400">Page</span>
+            </Link>
             {userEmail && onLogout && (
               <button
                 onClick={onLogout}

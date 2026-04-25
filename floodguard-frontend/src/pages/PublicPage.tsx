@@ -199,12 +199,20 @@ export default function PublicPage() {
             <Activity className="h-5 w-5 text-emerald-500" />
             <span className="text-base font-semibold text-slate-800 dark:text-slate-200">FloodGuard</span>
           </div>
-          <Link
-            to="/admin"
-            className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
-          >
-            Admin / Agency Login →
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/about"
+              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+            >
+              About
+            </Link>
+            <Link
+              to="/admin"
+              className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+            >
+              Admin / Agency Login →
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -321,6 +329,15 @@ export default function PublicPage() {
           </div>
         )}
       </main>
+
+      <div className="pb-16 text-center">
+        <Link
+          to="/about"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition"
+        >
+          About FloodGuard →
+        </Link>
+      </div>
 
       <Footer />
     </div>

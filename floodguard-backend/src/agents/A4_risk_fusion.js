@@ -117,10 +117,11 @@ async function updateForecastRiskScores(weatherRows, scores) {
     const zoneScore = scores[row.zone]
     if (!zoneScore || !row?.id) continue
     try {
-      await prisma.forecast.update({
-        where: { id: row.id },
-        data: { riskScore: zoneScore.riskScore },
-      })
+      // Use raw SQL to avoid Prisma 5.x binary Float encoding issue (PostgreSQL error 22P03)
+      await prisma.$executeRawUnsafe(
+        `UPDATE "Forecast" SET "riskScore" = $1::float8 WHERE id = $2`,
+        zoneScore.riskScore, row.id
+      )
     } catch (error) {
       console.warn(`Failed to update risk score for forecast ${row.id}`, error?.message ?? error)
     }

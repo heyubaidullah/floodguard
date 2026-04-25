@@ -1,0 +1,109 @@
+/**
+ * Writes a realistic demo scenario into the DB so the dashboard
+ * can display it via the normal /forecast, /incidents, /social, /alerts endpoints.
+ * Uses raw SQL to avoid Prisma 5.x binary-format Float issues (PostgreSQL error 22P03).
+ */
+import { prisma } from '../db/prisma.js'
+
+const ZONES = [
+  { id: 'DEMO-HIGH', name: 'Bayshore District', lat: 25.7617, lon: -80.1918, rainProb: 0.82, rainAmount: 18.4, score: 0.87, tier: 'HIGH' },
+  { id: 'DEMO-MED',  name: 'Midtown Heights',   lat: 25.8007, lon: -80.1931, rainProb: 0.54, rainAmount: 7.1,  score: 0.54, tier: 'MEDIUM' },
+  { id: 'DEMO-SAFE', name: 'Coral Terrace',      lat: 25.7473, lon: -80.2870, rainProb: 0.18, rainAmount: 1.2,  score: 0.18, tier: 'SAFE' },
+]
+
+const INCIDENTS = [
+  { zone: 'DEMO-HIGH', type: 'drain',   description: 'Blocked storm drain on Bayshore Dr — water backing up',              locationName: 'Bayshore Dr & 15th' },
+  { zone: 'DEMO-HIGH', type: 'citizen', description: 'Street flooding ankle-deep at intersection of 12th and Bay',         locationName: '12th Ave & Bay Rd' },
+  { zone: 'DEMO-HIGH', type: 'drain',   description: 'Overflow from gutter on NW 5th — pavement cracking',                locationName: 'NW 5th St' },
+  { zone: 'DEMO-MED',  type: 'citizen', description: 'Puddles forming near midtown underpass',                             locationName: 'Midtown Underpass' },
+]
+
+const SOCIAL_POSTS = [
+  { zone: 'DEMO-HIGH', user: '@bayshore_resident', text: 'Can barely walk down my street — standing water all the way to the corner. #BayshoreFlooding', riskFlag: true },
+  { zone: 'DEMO-HIGH', user: '@miamialerts',       text: 'ALERT: Bayshore District experiencing active street flooding. Avoid the area. City crews on scene.', riskFlag: true },
+  { zone: 'DEMO-HIGH', user: '@commuter305',       text: 'My car is stuck — water came up so fast on Bay Rd. Do NOT come this way.', riskFlag: true },
+  { zone: 'DEMO-HIGH', user: '@weatherwatch_mia',  text: 'Rainfall radar shows 18+ mm accumulation over Bayshore in the last hour. Drainage cannot keep up.', riskFlag: true },
+  { zone: 'DEMO-MED',  user: '@midtown_watch',     text: 'Puddles around the underpass getting worse. Anyone know if city crews are coming?', riskFlag: false },
+  { zone: 'DEMO-SAFE', user: '@coral_terrace_news',text: 'Light drizzle here in Coral Terrace. Roads clear so far.', riskFlag: false },
+]
+
+const ALERTS = [
+  {
+    audience: 'ops',
+    message: 'OPS ALERT – Bayshore District (DEMO-HIGH): HIGH flood risk. Deploy pump units to Storm Basin 7. Inspect drain grates on Biscayne Blvd. Stage traffic barricades at intersections.',
+    riskTier: 'HIGH',
+  },
+  {
+    audience: 'public',
+    message: 'PUBLIC ALERT – Bayshore District (DEMO-HIGH): High flood risk detected. Avoid low-lying roads and underpasses. Do NOT drive through standing water. Call 911 for life-threatening emergencies.',
+    riskTier: 'HIGH',
+  },
+]
+
+/**
+ * Delete and re-insert all demo data, returning { scores, alerts, weather }.
+ * Uses $executeRawUnsafe to avoid binary-format Float encoding issues in Prisma 5.x.
+ */
+export async function seedDemoData() {
+  // Clean up previous demo records
+  await prisma.$executeRawUnsafe(`DELETE FROM "Forecast" WHERE zone LIKE 'DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "Incident" WHERE zone LIKE 'DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "SocialIncident" WHERE zone LIKE 'DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "Alert" WHERE message LIKE '%(DEMO-%'`)
+
+  // Insert forecasts via raw SQL to bypass Float binary encoding issue
+  const forecastIds = []
+  for (const z of ZONES) {
+    const rows = await prisma.$queryRawUnsafe(
+      `INSERT INTO "Forecast" (id, zone, "rainProb", "rainAmount", "riskScore")
+       VALUES (gen_random_uuid(), $1, $2::float8, $3::float8, $4::float8)
+       RETURNING id, zone, "rainProb", "rainAmount", "riskScore", timestamp`,
+      z.id, z.rainProb, z.rainAmount, z.score
+    )
+    forecastIds.push(rows[0])
+  }
+
+  // Insert incidents via raw SQL
+  for (const i of INCIDENTS) {
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "Incident" (id, type, description, zone, "locationName")
+       VALUES (gen_random_uuid(), $1::"IncidentType", $2, $3, $4)`,
+      i.type, i.description, i.zone, i.locationName
+    )
+  }
+
+  // Insert social posts via raw SQL
+  for (const s of SOCIAL_POSTS) {
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "SocialIncident" (id, text, "user", zone, "riskFlag")
+       VALUES (gen_random_uuid(), $1, $2, $3, $4)`,
+      s.text, s.user, s.zone, s.riskFlag
+    )
+  }
+
+  // Insert alerts via raw SQL
+  const alertRows = []
+  for (const a of ALERTS) {
+    const rows = await prisma.$queryRawUnsafe(
+      `INSERT INTO "Alert" (id, audience, message, "riskTier")
+       VALUES (gen_random_uuid(), $1::"Audience", $2, $3::"RiskTier")
+       RETURNING id, audience, message, "riskTier", "createdAt"`,
+      a.audience, a.message, a.riskTier
+    )
+    alertRows.push(rows[0])
+  }
+
+  // Build scores map
+  const scores = {}
+  for (const z of ZONES) {
+    scores[z.id] = { riskScore: z.score, riskTier: z.tier, rationale: buildRationale(z) }
+  }
+
+  return { forecasts: forecastIds, alerts: alertRows, scores }
+}
+
+function buildRationale(z) {
+  if (z.tier === 'HIGH') return 'Severe rainfall (82% probability, 18 mm) combined with 3 citizen/drain reports and 4 flagged social posts indicating active street flooding.'
+  if (z.tier === 'MEDIUM') return 'Moderate rainfall (54% probability, 7 mm) with 1 citizen incident reported. Social sentiment shows concern but no confirmed flooding.'
+  return 'Low rainfall probability (18%). No incidents or flagged social activity. Drainage appears nominal.'
+}

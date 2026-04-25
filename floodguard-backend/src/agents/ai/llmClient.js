@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { env } from '../../env.js'
+import { getRequestGeminiKey } from '../../lib/requestContext.js'
 
 const MODEL_NAME = 'gemini-2.5-flash'
 
@@ -38,11 +39,13 @@ function safeParse(value) {
 }
 
 export async function generateStructuredJson({ instructions, input = {}, temperature = 0.2 }) {
-  if (!env.GEMINI_API_KEY) {
+  // Priority: per-request BYOK key → server env key → error
+  const apiKey = getRequestGeminiKey() || env.GEMINI_API_KEY
+  if (!apiKey) {
     throw new LlmDisabledError()
   }
 
-  const client = new GoogleGenerativeAI(env.GEMINI_API_KEY)
+  const client = new GoogleGenerativeAI(apiKey)
   const model = client.getGenerativeModel({
     model: MODEL_NAME,
     generationConfig: {
@@ -52,7 +55,7 @@ export async function generateStructuredJson({ instructions, input = {}, tempera
   })
 
   const prompt = `${instructions}\n\nInput:\n${JSON.stringify(input, null, 2)}`
-  const result = await model.generateContent([{ role: 'user', parts: [{ text: prompt }] }])
+  const result = await model.generateContent(prompt)
   const text = result?.response?.text?.()
   const parsed = extractJsonBlock(text)
   if (!parsed) {

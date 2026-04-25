@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react'
 import Card from './Card'
-import { runCycle, startLoop, stopLoop, reportIncident } from '../api'
+import { runCycle, startLoop, stopLoop, reportIncident, getDemoSnapshot, getAiStatus } from '../api'
 import Toast, { useToast } from './Toast'
-import { Play, Square, RefreshCw, Send, Search } from 'lucide-react'
+import { Play, Square, RefreshCw, Send, Search, Zap, FlaskConical, Eye, EyeOff, KeyRound, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { forwardGeocode, type GeocodeResult } from '../lib/geocoding'
 import type { SelectedLocation } from '../types/location'
+import { useMode, type AppMode } from '../context/ModeContext'
 
 const DEFAULT_DESCRIPTION = 'Citizen report: standing water'
 
 type ControlsProps = {
   selectedLocation: SelectedLocation
   onLocationChange: (loc: SelectedLocation) => void
-  onActionComplete: () => void
+  onActionComplete: (data?: any) => void
 }
 
 export default function Controls({ selectedLocation, onLocationChange, onActionComplete }: ControlsProps) {
+  const { mode, setMode, geminiKey, setGeminiKey } = useMode()
+
   const [incidentsTarget, setIncidentsTarget] = useState(1)
   const [socialTarget, setSocialTarget] = useState(2)
   const [intervalMs, setIntervalMs] = useState(5000)
@@ -25,24 +28,67 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
   const [isSearching, setIsSearching] = useState(false)
   const { msg, type, toast, dismiss } = useToast()
 
+  // BYOK key state
+  const [keyDraft, setKeyDraft] = useState(geminiKey)
+  const [showKey, setShowKey] = useState(false)
+  const [aiStatus, setAiStatus] = useState<{ hasServerKey: boolean; aiEnabled: boolean } | null>(null)
+
   useEffect(() => {
     setZone(selectedLocation.zoneId)
   }, [selectedLocation.zoneId])
 
+  // Sync draft when stored key changes externally
+  useEffect(() => {
+    setKeyDraft(geminiKey)
+  }, [geminiKey])
+
+  // Check AI availability when switching to live mode or key changes
+  useEffect(() => {
+    if (mode === 'live') {
+      getAiStatus().then(setAiStatus)
+    }
+  }, [mode, geminiKey])
+
+  function handleModeSwitchTo(m: AppMode) {
+    setMode(m)
+    if (m === 'demo') setAiStatus(null)
+  }
+
+  function saveKey() {
+    setGeminiKey(keyDraft)
+    toast('Gemini key saved')
+  }
+
+  function clearKey() {
+    setKeyDraft('')
+    setGeminiKey('')
+    toast('Gemini key cleared')
+  }
+
   async function runOnce() {
     try {
-      await runCycle(incidentsTarget, socialTarget, selectedLocation, zone)
-      onActionComplete()
-      toast('Cycle completed')
+      if (mode === 'demo') {
+        const data = await getDemoSnapshot()
+        onActionComplete(data)
+        toast('Demo snapshot loaded')
+      } else {
+        const data = await runCycle(incidentsTarget, socialTarget, selectedLocation, zone)
+        onActionComplete(data)
+        toast('Cycle completed')
+      }
     } catch (error: any) {
       toast(error?.message ?? 'Cycle failed', 'err')
     }
   }
 
   async function startLoopHandler() {
+    if (mode === 'demo') {
+      toast('Loop not available in Demo mode — use Load instead', 'err')
+      return
+    }
     try {
-      await runCycle(incidentsTarget, socialTarget, selectedLocation, zone)
-      onActionComplete()
+      const data = await runCycle(incidentsTarget, socialTarget, selectedLocation, zone)
+      onActionComplete(data)
       await startLoop(intervalMs, incidentsTarget, socialTarget, selectedLocation, zone)
       onActionComplete()
       toast('Loop started with selected location')
@@ -109,47 +155,181 @@ export default function Controls({ selectedLocation, onLocationChange, onActionC
 
   const inputClass = "mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 min-h-[44px] text-sm text-slate-700 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
 
+  const isLiveWithoutAi = mode === 'live' && aiStatus && !aiStatus.aiEnabled
+
   return (
     <>
       <Card title="Controls">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-          <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Incidents</label>
-            <input
-              type="number"
-              min={0}
-              value={incidentsTarget}
-              onChange={e => setIncidentsTarget(Number(e.target.value))}
-              className={inputClass}
-            />
+
+        {/* ── Mode Toggle ── */}
+        <div className="mb-4">
+          <p className="mb-1.5 text-xs font-medium text-slate-500 dark:text-slate-300">Data source</p>
+          <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-800">
+            <button
+              onClick={() => handleModeSwitchTo('demo')}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                mode === 'demo'
+                  ? 'bg-white text-emerald-700 shadow-sm dark:bg-slate-700 dark:text-emerald-300'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              <FlaskConical className="h-3.5 w-3.5 shrink-0" />
+              Demo
+            </button>
+            <button
+              onClick={() => handleModeSwitchTo('live')}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                mode === 'live'
+                  ? 'bg-white text-sky-700 shadow-sm dark:bg-slate-700 dark:text-sky-300'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              <Zap className="h-3.5 w-3.5 shrink-0" />
+              Live AI
+            </button>
           </div>
-          <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Social</label>
-            <input
-              type="number"
-              min={0}
-              value={socialTarget}
-              onChange={e => setSocialTarget(Number(e.target.value))}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Interval (ms)</label>
-            <input
-              type="number"
-              min={1000}
-              step={500}
-              value={intervalMs}
-              onChange={e => setIntervalMs(Number(e.target.value))}
-              className={inputClass}
-            />
-          </div>
+
+          {/* Demo mode info pill */}
+          {mode === 'demo' && (
+            <div className="mt-2 flex items-start gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <FlaskConical className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>Pre-recorded realistic flood scenario — instant, no API key needed. Explore the dashboard freely.</span>
+            </div>
+          )}
+
+          {/* Live AI — no key warning */}
+          {isLiveWithoutAi && (
+            <div className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>No Gemini API key available. AI agents will use heuristic fallback. Add your key below for full AI analysis.</span>
+            </div>
+          )}
+
+          {/* Live AI — key active */}
+          {mode === 'live' && aiStatus?.aiEnabled && (
+            <div className="mt-2 flex items-center gap-2 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-700 dark:bg-sky-500/10 dark:text-sky-300">
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+              <span>AI agents active — {aiStatus.hasServerKey ? 'server key' : 'your key'} in use.</span>
+            </div>
+          )}
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2 text-sm font-medium">
-          <button onClick={runOnce} className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md active:bg-emerald-800"><RefreshCw className="h-4 w-4 shrink-0" /><span className="truncate">Run</span></button>
-          <button onClick={startLoopHandler} className="flex items-center justify-center gap-1.5 rounded-xl bg-sky-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md active:bg-sky-800"><Play className="h-4 w-4 shrink-0" /><span className="truncate">Start</span></button>
-          <button onClick={stopLoopHandler} className="flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-rose-700 hover:shadow-md active:bg-rose-800"><Square className="h-4 w-4 shrink-0" /><span className="truncate">Stop</span></button>
+        {/* ── BYOK key input (only in live mode) ── */}
+        {mode === 'live' && (
+          <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-300">
+              <KeyRound className="h-3.5 w-3.5" />
+              Gemini API Key (optional)
+            </label>
+            <div className="mt-1.5 flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  value={keyDraft}
+                  onChange={e => setKeyDraft(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && saveKey()}
+                  placeholder="AIza..."
+                  className={`${inputClass} mt-0 pr-9 font-mono text-xs`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(v => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  aria-label={showKey ? 'Hide key' : 'Show key'}
+                >
+                  {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={saveKey}
+                className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20 min-h-[44px]"
+              >
+                Save
+              </button>
+              {geminiKey && (
+                <button
+                  type="button"
+                  onClick={clearKey}
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-600 transition hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20 min-h-[44px]"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
+              Stored locally in your browser only. Get a free key at{' '}
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-emerald-600 dark:hover:text-emerald-400"
+              >
+                aistudio.google.com
+              </a>
+            </p>
+          </div>
+        )}
+
+        {/* ── Cycle parameters (only in live mode) ── */}
+        {mode === 'live' && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div>
+              <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Incidents</label>
+              <input
+                type="number"
+                min={0}
+                value={incidentsTarget}
+                onChange={e => setIncidentsTarget(Number(e.target.value))}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Social</label>
+              <input
+                type="number"
+                min={0}
+                value={socialTarget}
+                onChange={e => setSocialTarget(Number(e.target.value))}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500 dark:text-slate-300">Interval (ms)</label>
+              <input
+                type="number"
+                min={1000}
+                step={500}
+                value={intervalMs}
+                onChange={e => setIntervalMs(Number(e.target.value))}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── Action buttons ── */}
+        <div className={`${mode === 'live' ? 'mt-3' : ''} grid grid-cols-3 gap-2 text-sm font-medium`}>
+          <button onClick={runOnce} className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-emerald-700 hover:shadow-md active:bg-emerald-800">
+            <RefreshCw className="h-4 w-4 shrink-0" />
+            <span className="truncate">{mode === 'demo' ? 'Load' : 'Run'}</span>
+          </button>
+          <button
+            onClick={startLoopHandler}
+            disabled={mode === 'demo'}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-sky-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-sky-700 hover:shadow-md active:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Play className="h-4 w-4 shrink-0" />
+            <span className="truncate">Start</span>
+          </button>
+          <button
+            onClick={stopLoopHandler}
+            disabled={mode === 'demo'}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 min-h-[44px] py-2 text-white shadow-sm transition hover:bg-rose-700 hover:shadow-md active:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Square className="h-4 w-4 shrink-0" />
+            <span className="truncate">Stop</span>
+          </button>
         </div>
 
         <div className="mt-5 space-y-3 text-sm">

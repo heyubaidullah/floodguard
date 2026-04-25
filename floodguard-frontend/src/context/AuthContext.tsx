@@ -28,6 +28,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     setIsAuthenticated(false)
     setUserEmail(null)
+    // Clear any stored BYOK Gemini key on logout for security
+    localStorage.removeItem('fg_gemini_key')
+    localStorage.removeItem('fg_mode')
   }
 
   return (

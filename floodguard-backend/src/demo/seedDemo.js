@@ -43,15 +43,28 @@ const ALERTS = [
 ]
 
 /**
- * Delete and re-insert all demo data, returning { scores, alerts, weather }.
- * Uses $executeRawUnsafe to avoid binary-format Float encoding issues in Prisma 5.x.
+ * Seed demo data into the DB, idempotently. Skips all writes if demo records
+ * already exist (i.e., seeded at startup/post-merge). Returns { scores, alerts }.
+ * Uses $queryRawUnsafe/$executeRawUnsafe to bypass Prisma 5.x binary Float encoding issues.
  */
 export async function seedDemoData() {
-  // Clean up previous demo records
-  await prisma.$executeRawUnsafe(`DELETE FROM "Forecast" WHERE zone LIKE 'DEMO-%'`)
-  await prisma.$executeRawUnsafe(`DELETE FROM "Incident" WHERE zone LIKE 'DEMO-%'`)
-  await prisma.$executeRawUnsafe(`DELETE FROM "SocialIncident" WHERE zone LIKE 'DEMO-%'`)
-  await prisma.$executeRawUnsafe(`DELETE FROM "Alert" WHERE message LIKE '%(DEMO-%'`)
+  // Idempotency check: if demo forecast records already exist, skip seeding
+  const existing = await prisma.$queryRawUnsafe(
+    `SELECT id FROM "Forecast" WHERE zone LIKE 'DEMO-%' LIMIT 1`
+  )
+  if (existing.length > 0) {
+    // Demo data is already present — build and return scores without re-seeding
+    const scores = {}
+    for (const z of ZONES) {
+      scores[z.id] = { riskScore: z.score, riskTier: z.tier, rationale: buildRationale(z) }
+    }
+    const alertRows = await prisma.$queryRawUnsafe(
+      `SELECT id, audience, message, "riskTier", "createdAt" FROM "Alert" WHERE message LIKE '%(DEMO-%' ORDER BY "createdAt" DESC LIMIT 5`
+    )
+    return { forecasts: [], alerts: alertRows, scores }
+  }
+
+  // First-time seed: clean up any partial records then insert fresh data
 
   // Insert forecasts via raw SQL to bypass Float binary encoding issue
   const forecastIds = []

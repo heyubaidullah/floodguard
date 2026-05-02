@@ -1,0 +1,20 @@
+# Netlify configuration for FloodGuard frontend (React/Vite SPA)
+#
+# The frontend is a static SPA that calls a separately-hosted backend API.
+# Set VITE_API_BASE in Netlify's Environment Variables to your backend URL,
+# e.g. https://your-backend.railway.app
+#
+# Build settings
+[build]
+  base    = "floodguard-frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback — all non-file routes serve index.html so React Router works
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

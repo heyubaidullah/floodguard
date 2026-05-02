@@ -1,0 +1,64 @@
+# render.yaml — one-click "Deploy to Render" configuration
+# Docs: https://render.com/docs/blueprint-spec
+#
+# This file provisions two services on Render's free tier:
+#   1. floodguard-api   — Fastify backend (Node.js web service)
+#   2. floodguard-web   — React/Vite frontend (static site)
+#
+# Prerequisites before deploying:
+#   • A PostgreSQL database (Render free tier, Supabase, or Neon)
+#   • A Mapbox public token (free — https://account.mapbox.com/)
+#   • A Google Gemini API key (free — https://aistudio.google.com/app/apikey)
+#
+# Usage:
+#   1. Fork/push this repo to GitHub.
+#   2. Go to https://dashboard.render.com/ → New → Blueprint.
+#   3. Select your repo — Render reads this file automatically.
+#   4. Fill in the environment variable placeholders marked with REPLACE_ME.
+
+services:
+  # ── Backend API ──────────────────────────────────────────────────────────────
+  - type: web
+    name: floodguard-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: floodguard-backend
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      # Comma-separated — add your Netlify/Render frontend URL here
+      - key: CORS_ORIGIN
+        value: REPLACE_ME   # e.g. https://floodguard.netlify.app,https://floodguard-web.onrender.com
+      - key: DATABASE_URL
+        value: REPLACE_ME   # Your Supabase / Neon / Render PostgreSQL connection string
+      - key: GEMINI_API_KEY
+        value: REPLACE_ME   # Optional — users can BYOK in-browser
+      - key: TWITTER_BEARER
+        value: ""            # Optional
+
+  # ── Frontend Static Site ─────────────────────────────────────────────────────
+  - type: web
+    name: floodguard-web
+    runtime: static
+    region: oregon
+    plan: free
+    rootDir: floodguard-frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    # SPA fallback — serves index.html for all routes so React Router works
+    routes:
+      - type: rewrite
+        source: "/*"
+        destination: /index.html
+    envVars:
+      # Point the frontend at the backend service above
+      - key: VITE_API_BASE
+        value: REPLACE_ME   # e.g. https://floodguard-api.onrender.com
+      - key: VITE_MAPBOX_TOKEN
+        value: REPLACE_ME   # Your Mapbox public token (starts with pk.)

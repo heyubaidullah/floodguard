@@ -2,13 +2,8 @@
 # Docs: https://render.com/docs/blueprint-spec
 #
 # The frontend is hosted separately on Netlify (see netlify.toml).
-# The database is hosted on Supabase — paste your connection string below.
-#
-# Usage:
-#   1. Push this repo to GitHub.
-#   2. Go to https://dashboard.render.com → New → Blueprint.
-#   3. Select your repo — Render reads this file automatically.
-#   4. Replace REPLACE_ME values with your actual credentials.
+# Variables marked "sync: false" must be set manually in the Render dashboard
+# — the Blueprint will not override them.
 
 services:
   - type: web
@@ -23,21 +18,22 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Render injects PORT automatically — no need to change this
       - key: PORT
         value: 10000
-      # Your Netlify frontend URL — set after Netlify deploys
-      # e.g. https://floodguard.netlify.app
-      - key: CORS_ORIGIN
-        value: REPLACE_ME
-      # Supabase connection string
-      # Project Settings → Database → Connection string → URI
-      # Append ?sslmode=require if not already present
+      # Set all of these manually in the Render dashboard.
+      # "sync: false" means this file will never override what you set there.
+      #
+      # DATABASE_URL  = Supabase connection POOLER URL (port 6543)
+      #   e.g. postgresql://postgres.xxxx:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
       - key: DATABASE_URL
-        value: REPLACE_ME
-      # Optional — leave blank, users can enter their own Gemini key in the app
+        sync: false
+      # DIRECT_URL = Supabase DIRECT connection URL (port 5432) — used only for migrations
+      #   e.g. postgresql://postgres:PASSWORD@db.xxxx.supabase.co:5432/postgres?sslmode=require
+      - key: DIRECT_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
       - key: GEMINI_API_KEY
-        value: ""
-      # Optional — leave blank unless you have a Twitter developer account
+        sync: false
       - key: TWITTER_BEARER
-        value: ""
+        sync: false

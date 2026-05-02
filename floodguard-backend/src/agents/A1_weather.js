@@ -43,7 +43,7 @@ export const A1_WeatherIngest = new Task('A1_WeatherIngest', async (input, ctx) 
     // Generate UUID in app to avoid gen_random_uuid() / pgcrypto extension dependency
     const id = randomUUID()
     const rows = await prisma.$queryRawUnsafe(
-      `INSERT INTO "Forecast" (id, zone, "rainProb", "rainAmount", "riskScore")
+      `INSERT INTO "fg_forecasts" (id, zone, "rainProb", "rainAmount", "riskScore")
        VALUES ($1, $2, $3::float8, $4::float8, 0::float8)
        RETURNING id, zone, "rainProb", "rainAmount", "riskScore", timestamp`,
       id, forecast.zone, rainProb, rainAmount

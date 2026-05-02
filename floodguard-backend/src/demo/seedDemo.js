@@ -3,6 +3,8 @@
  * can display it via the normal /forecast, /incidents, /social, /alerts endpoints.
  * Uses raw SQL to avoid Prisma 5.x binary-format Float issues (PostgreSQL error 22P03).
  * Uses crypto.randomUUID() for portable UUID generation (no gen_random_uuid() required).
+ *
+ * All table names use the "fg_" prefix to avoid conflicts in shared Supabase projects.
  */
 import { prisma } from '../db/prisma.js'
 import { randomUUID } from 'crypto'
@@ -50,10 +52,10 @@ const ALERTS = [
 export async function seedDemoData() {
   // Idempotency check: verify ALL four demo tables are fully populated
   const [forecasts, incidents, social, alerts] = await Promise.all([
-    prisma.$queryRawUnsafe(`SELECT id FROM "Forecast" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
-    prisma.$queryRawUnsafe(`SELECT id FROM "Incident" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
-    prisma.$queryRawUnsafe(`SELECT id FROM "SocialIncident" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
-    prisma.$queryRawUnsafe(`SELECT id FROM "Alert" WHERE message LIKE '%(DEMO-%' LIMIT 1`),
+    prisma.$queryRawUnsafe(`SELECT id FROM "fg_forecasts" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
+    prisma.$queryRawUnsafe(`SELECT id FROM "fg_incidents" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
+    prisma.$queryRawUnsafe(`SELECT id FROM "fg_social_incidents" WHERE zone LIKE 'DEMO-%' LIMIT 1`),
+    prisma.$queryRawUnsafe(`SELECT id FROM "fg_alerts" WHERE message LIKE '%(DEMO-%' LIMIT 1`),
   ])
   const isFullySeeded = forecasts.length > 0 && incidents.length > 0 && social.length > 0 && alerts.length > 0
   if (isFullySeeded) {
@@ -63,23 +65,23 @@ export async function seedDemoData() {
       scores[z.id] = { riskScore: z.score, riskTier: z.tier, rationale: buildRationale(z) }
     }
     const alertRows = await prisma.$queryRawUnsafe(
-      `SELECT id, audience, message, "riskTier", "createdAt" FROM "Alert" WHERE message LIKE '%(DEMO-%' ORDER BY "createdAt" DESC LIMIT 5`
+      `SELECT id, audience, message, "riskTier", "createdAt" FROM "fg_alerts" WHERE message LIKE '%(DEMO-%' ORDER BY "createdAt" DESC LIMIT 5`
     )
     return { forecasts: [], alerts: alertRows, scores }
   }
 
   // First-time seed (or partial state recovery): clean up any stale demo records then re-insert
-  await prisma.$executeRawUnsafe(`DELETE FROM "Alert" WHERE message LIKE '%(DEMO-%'`)
-  await prisma.$executeRawUnsafe(`DELETE FROM "SocialIncident" WHERE zone LIKE 'DEMO-%'`)
-  await prisma.$executeRawUnsafe(`DELETE FROM "Incident" WHERE zone LIKE 'DEMO-%'`)
-  await prisma.$executeRawUnsafe(`DELETE FROM "Forecast" WHERE zone LIKE 'DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "fg_alerts" WHERE message LIKE '%(DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "fg_social_incidents" WHERE zone LIKE 'DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "fg_incidents" WHERE zone LIKE 'DEMO-%'`)
+  await prisma.$executeRawUnsafe(`DELETE FROM "fg_forecasts" WHERE zone LIKE 'DEMO-%'`)
 
   // Insert forecasts via raw SQL to bypass Float binary encoding issue
   const forecastIds = []
   for (const z of ZONES) {
     const id = randomUUID()
     const rows = await prisma.$queryRawUnsafe(
-      `INSERT INTO "Forecast" (id, zone, "rainProb", "rainAmount", "riskScore")
+      `INSERT INTO "fg_forecasts" (id, zone, "rainProb", "rainAmount", "riskScore")
        VALUES ($1, $2, $3::float8, $4::float8, $5::float8)
        RETURNING id, zone, "rainProb", "rainAmount", "riskScore", timestamp`,
       id, z.id, z.rainProb, z.rainAmount, z.score
@@ -91,7 +93,7 @@ export async function seedDemoData() {
   for (const i of INCIDENTS) {
     const id = randomUUID()
     await prisma.$executeRawUnsafe(
-      `INSERT INTO "Incident" (id, type, description, zone, "locationName")
+      `INSERT INTO "fg_incidents" (id, type, description, zone, "locationName")
        VALUES ($1, $2::"IncidentType", $3, $4, $5)`,
       id, i.type, i.description, i.zone, i.locationName
     )
@@ -101,7 +103,7 @@ export async function seedDemoData() {
   for (const s of SOCIAL_POSTS) {
     const id = randomUUID()
     await prisma.$executeRawUnsafe(
-      `INSERT INTO "SocialIncident" (id, text, "user", zone, "riskFlag")
+      `INSERT INTO "fg_social_incidents" (id, text, "user", zone, "riskFlag")
        VALUES ($1, $2, $3, $4, $5)`,
       id, s.text, s.user, s.zone, s.riskFlag
     )
@@ -112,7 +114,7 @@ export async function seedDemoData() {
   for (const a of ALERTS) {
     const id = randomUUID()
     const rows = await prisma.$queryRawUnsafe(
-      `INSERT INTO "Alert" (id, audience, message, "riskTier")
+      `INSERT INTO "fg_alerts" (id, audience, message, "riskTier")
        VALUES ($1, $2::"Audience", $3, $4::"RiskTier")
        RETURNING id, audience, message, "riskTier", "createdAt"`,
       id, a.audience, a.message, a.riskTier

@@ -32,20 +32,22 @@ model Forecast {
   riskScore  Float    @default(0)
   timestamp  DateTime @default(now())
 
+  @@map("fg_forecasts")
   @@index([zone, timestamp])
 }
 
 model Incident {
-  id          String       @id @default(uuid())
-  type        IncidentType
-  description String
-  zone        String
-  photoUrl    String?
+  id           String       @id @default(uuid())
+  type         IncidentType
+  description  String
+  zone         String
+  photoUrl     String?
   locationName String?
-  latitude    Float?
-  longitude   Float?
-  timestamp   DateTime     @default(now())
+  latitude     Float?
+  longitude    Float?
+  timestamp    DateTime     @default(now())
 
+  @@map("fg_incidents")
   @@index([zone, timestamp])
 }
 
@@ -57,6 +59,7 @@ model SocialIncident {
   riskFlag  Boolean  @default(false)
   timestamp DateTime @default(now())
 
+  @@map("fg_social_incidents")
   @@index([zone, timestamp])
 }
 
@@ -66,6 +69,8 @@ model Alert {
   message   String
   riskTier  RiskTier
   createdAt DateTime @default(now())
+
+  @@map("fg_alerts")
 }
 
 model OpsLog {
@@ -76,5 +81,6 @@ model OpsLog {
   durationMs Int
   timestamp  DateTime @default(now())
 
+  @@map("fg_ops_logs")
   @@index([cycleId, timestamp])
 }

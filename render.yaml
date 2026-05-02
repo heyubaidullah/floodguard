@@ -1,0 +1,43 @@
+# render.yaml — deploys the FloodGuard backend API on Render (free tier)
+# Docs: https://render.com/docs/blueprint-spec
+#
+# The frontend is hosted separately on Netlify (see netlify.toml).
+# The database is hosted on Supabase — paste your connection string below.
+#
+# Usage:
+#   1. Push this repo to GitHub.
+#   2. Go to https://dashboard.render.com → New → Blueprint.
+#   3. Select your repo — Render reads this file automatically.
+#   4. Replace REPLACE_ME values with your actual credentials.
+
+services:
+  - type: web
+    name: floodguard-api
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: floodguard-backend
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render injects PORT automatically — no need to change this
+      - key: PORT
+        value: 10000
+      # Your Netlify frontend URL — set after Netlify deploys
+      # e.g. https://floodguard.netlify.app
+      - key: CORS_ORIGIN
+        value: REPLACE_ME
+      # Supabase connection string
+      # Project Settings → Database → Connection string → URI
+      # Append ?sslmode=require if not already present
+      - key: DATABASE_URL
+        value: REPLACE_ME
+      # Optional — leave blank, users can enter their own Gemini key in the app
+      - key: GEMINI_API_KEY
+        value: ""
+      # Optional — leave blank unless you have a Twitter developer account
+      - key: TWITTER_BEARER
+        value: ""

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { randomUUID } from 'crypto'
 import { prisma } from '../db/prisma.js'
 import { resolveZones } from '../lib/zones.js'
 import { Task } from '../adk/runtime.js'
@@ -38,10 +39,16 @@ export const A1_WeatherIngest = new Task('A1_WeatherIngest', async (input, ctx) 
   for (const forecast of weatherRows) {
     const rainProb = clamp(Number(forecast.rainProb ?? 0), 0, 1)
     const rainAmount = normalizeAmount(forecast.rainAmount)
-    const record = await prisma.forecast.create({
-      data: { zone: forecast.zone, rainProb, rainAmount, riskScore: 0 },
-    })
-    created.push(record)
+    // Use raw SQL to avoid Prisma 5.x binary Float encoding issue (PostgreSQL error 22P03)
+    // Generate UUID in app to avoid gen_random_uuid() / pgcrypto extension dependency
+    const id = randomUUID()
+    const rows = await prisma.$queryRawUnsafe(
+      `INSERT INTO "fg_forecasts" (id, zone, "rainProb", "rainAmount", "riskScore")
+       VALUES ($1, $2, $3::float8, $4::float8, 0::float8)
+       RETURNING id, zone, "rainProb", "rainAmount", "riskScore", timestamp`,
+      id, forecast.zone, rainProb, rainAmount
+    )
+    created.push(rows[0])
   }
 
   return { ...input, weather: created, meta: { agent: 'A1', mode } }

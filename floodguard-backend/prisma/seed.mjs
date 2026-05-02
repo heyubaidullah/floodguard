@@ -1,9 +1,10 @@
 import { PrismaClient } from '@prisma/client'
+import { seedDemoData } from '../src/demo/seedDemo.js'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  // Seed Forecast data
+  // Seed baseline Forecast data
   await prisma.forecast.createMany({
     data: [
       { zone: 'Z1', rainProb: 80, rainAmount: 10, riskScore: 0.8 },
@@ -11,7 +12,7 @@ async function main() {
     ],
   })
 
-  // Seed Incidents
+  // Seed baseline Incidents
   await prisma.incident.createMany({
     data: [
       { type: 'citizen', description: 'Flooded street in Z1', zone: 'Z1' },
@@ -19,7 +20,7 @@ async function main() {
     ],
   })
 
-  // Seed Alerts
+  // Seed baseline Alerts
   await prisma.alert.createMany({
     data: [
       { audience: 'ops', message: 'Flood alert in Z1', riskTier: 'HIGH' },
@@ -27,7 +28,12 @@ async function main() {
     ],
   })
 
-  console.log("Data seeded successfully!")
+  // Seed demo scenario data (Miami flood scenario — DEMO-HIGH/MED/SAFE zones)
+  // Uses raw SQL to bypass Prisma 5.x binary Float encoding issue (PostgreSQL error 22P03)
+  console.log('Seeding demo scenario data…')
+  await seedDemoData()
+
+  console.log('Data seeded successfully!')
 }
 
 main()

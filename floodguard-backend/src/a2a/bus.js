@@ -24,3 +24,8 @@ export async function sendA2A({ from, to, payload }) {
 
 /** Return and clear the trace buffer */
 export function getTraceAndClear() { const out = trace.slice(); trace.length = 0; return out; }
+
+/** Inject pre-built trace entries (used by demo endpoint to populate AgentTimeline) */
+export function injectTrace(entries) {
+  for (const entry of entries) trace.push(entry);
+}

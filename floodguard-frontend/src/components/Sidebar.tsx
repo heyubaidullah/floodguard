@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 
 type SidebarProps = {
@@ -9,6 +9,17 @@ type SidebarProps = {
 }
 
 export default function Sidebar({ controls, alerts, isOpen, onClose }: SidebarProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('sidebar-open')
+    } else {
+      document.body.classList.remove('sidebar-open')
+    }
+    return () => {
+      document.body.classList.remove('sidebar-open')
+    }
+  }, [isOpen])
+
   return (
     <>
       <aside
@@ -17,6 +28,7 @@ export default function Sidebar({ controls, alerts, isOpen, onClose }: SidebarPr
           h-full overflow-y-auto border-l px-4 py-5 gap-4
           bg-white/70 dark:bg-slate-900/70 backdrop-blur
           border-slate-200 dark:border-slate-800
+          scroll-smooth-touch
         `}
       >
         {controls}
@@ -33,22 +45,22 @@ export default function Sidebar({ controls, alerts, isOpen, onClose }: SidebarPr
           onClick={onClose}
         />
         <aside
-          className={`absolute inset-y-0 right-0 flex w-[320px] max-w-[85vw] flex-col gap-4
+          className={`absolute inset-y-0 right-0 flex w-[min(320px,90vw)] flex-col
             bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800
-            px-4 py-5 shadow-2xl dark:shadow-[none]
+            shadow-2xl dark:shadow-[none]
             transition-transform duration-300 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
         >
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Operations</h2>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
+            <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Operations Panel</h2>
             <button
               onClick={onClose}
-              className="rounded-full border border-slate-200 dark:border-slate-700 p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="rounded-full border border-slate-200 dark:border-slate-700 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition"
               aria-label="Close panel"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="overflow-y-auto -mr-2 pr-2 flex-1 flex flex-col gap-4">
+          <div className="overflow-y-auto flex-1 flex flex-col gap-4 p-4 scroll-smooth-touch">
             {controls}
             {alerts}
           </div>

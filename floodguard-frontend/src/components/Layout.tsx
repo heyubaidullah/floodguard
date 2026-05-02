@@ -1,8 +1,9 @@
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
 import MetricsOverview from './MetricsOverview'
+import Footer from './Footer'
 import type { SelectedLocation } from '../types/location'
 
 type LayoutProps = {
@@ -15,10 +16,13 @@ type LayoutProps = {
   onToggleTheme: () => void
   selectedLocation: SelectedLocation
   refreshKey: number
+  userEmail?: string | null
+  onLogout?: () => void
 }
 
-export default function Layout({ map, agents, controls, events, alerts, theme, onToggleTheme, selectedLocation, refreshKey }: LayoutProps) {
+export default function Layout({ map, agents, controls, events, alerts, theme, onToggleTheme, selectedLocation, refreshKey, userEmail, onLogout }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const mainRef = useRef<HTMLElement>(null)
 
   const sections = useMemo(() => ([
     { id: 'overview', label: 'Overview' },
@@ -34,41 +38,52 @@ export default function Layout({ map, agents, controls, events, alerts, theme, o
         onToggleTheme={onToggleTheme}
         onTogglePanel={() => setSidebarOpen(true)}
         sections={sections}
+        userEmail={userEmail}
+        onLogout={onLogout}
       />
 
-      <div className="relative flex h-[calc(100vh-64px)] flex-1">
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto flex h-full max-w-7xl flex-col gap-6 px-4 py-6">
-            <section id="overview" className="space-y-6">
+      <div className="relative flex flex-1 min-h-0">
+        <main ref={mainRef} className="flex-1 overflow-y-auto scroll-smooth-touch">
+          <div className="mx-auto flex h-full max-w-7xl flex-col gap-4 sm:gap-6 px-3 sm:px-4 py-4 sm:py-6">
+
+            {/* Overview metrics */}
+            <section id="overview" className="space-y-4 sm:space-y-6">
               <MetricsOverview theme={theme} selectedLocation={selectedLocation} refreshKey={refreshKey} />
             </section>
 
-            <section id="operations" className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-              <div className="flex flex-col gap-6">
+            {/* Operations: 
+                - mobile (<md): map, then events, stacked
+                - tablet (md–xl): map+events left | controls+alerts right (2-col)
+                - desktop (xl+): map+events left | [sidebar handles controls+alerts]
+            */}
+            <section id="operations" className="grid gap-4 sm:gap-6 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:grid-cols-1">
+              {/* Left: map + events */}
+              <div className="flex flex-col gap-4 sm:gap-6">
                 {map}
-              </div>
-              <div className="flex flex-col gap-6">
                 {events}
+              </div>
+
+              {/* Right: controls + alerts — visible at md→xl, replaced by fixed sidebar at xl */}
+              <div className="hidden md:flex xl:hidden flex-col gap-4 sm:gap-6">
+                {controls}
+                {alerts}
               </div>
             </section>
 
-            <section id="agents" className="space-y-6">
+            {/* Agent section */}
+            <section id="agents" className="space-y-4 sm:space-y-6">
               {agents}
             </section>
 
-            <section id="alerts" className="space-y-6 xl:hidden">
+            {/* Mobile only: controls + alerts below agents */}
+            <section id="alerts" className="space-y-4 sm:space-y-6 md:hidden">
               {controls}
               {alerts}
             </section>
+
+            <Footer scrollContainer={mainRef} />
           </div>
         </main>
-
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm xl:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
 
         <Sidebar
           controls={controls}

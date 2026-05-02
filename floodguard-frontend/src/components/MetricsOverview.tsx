@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { AlertTriangle, BarChart4, Circle, Radar, RefreshCw, ShieldHalf, WifiOff } from 'lucide-react'
+import { AlertTriangle, BarChart4, Circle, Radar, RefreshCw, ShieldCheck, ShieldHalf, WifiOff } from 'lucide-react'
 import { getAlerts, getForecast, getIncidents, getRiskMap } from '../api'
 import Sparkline from './Sparkline'
 import type { SelectedLocation } from '../types/location'
@@ -121,14 +121,6 @@ export default function MetricsOverview({ theme, selectedLocation, refreshKey }:
   const prevVelocity = metrics?.incidentsTrend.at(-2) ?? 0
   const velocityDelta = velocity - prevVelocity
 
-  const avgRiskPct = metrics ? Math.round(metrics.avgRiskScore * 100) : 0
-  const coveragePct = metrics && metrics.totalZones
-    ? Math.round((metrics.highRisk / Math.max(metrics.totalZones, 1)) * 100)
-    : 0
-  const watchPct = metrics && metrics.totalZones
-    ? Math.round((metrics.mediumRisk / Math.max(metrics.totalZones, 1)) * 100)
-    : 0
-
   const trendLabel = useMemo(() => {
     if (velocityDelta > 0) return `+${velocityDelta} vs prev.`
     if (velocityDelta < 0) return `${velocityDelta} vs prev.`
@@ -137,7 +129,7 @@ export default function MetricsOverview({ theme, selectedLocation, refreshKey }:
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 dark:text-slate-400">
         <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-1 dark:border-slate-700 dark:bg-slate-900/70">
           <Radar className="h-3.5 w-3.5 text-emerald-500" /> Live situational overview
         </span>
@@ -154,14 +146,14 @@ export default function MetricsOverview({ theme, selectedLocation, refreshKey }:
         )}
         <button
           onClick={load}
-          className="ml-auto inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/70 px-3 py-1.5 text-xs font-medium text-emerald-600 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+          className="ml-auto inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/70 px-3 py-1.5 min-h-[44px] text-xs font-medium text-emerald-600 transition hover:bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTileCritical
           loading={loading}
           high={metrics?.highRisk ?? 0}
@@ -176,7 +168,7 @@ export default function MetricsOverview({ theme, selectedLocation, refreshKey }:
         <MetricTile
           title="Watch Tier"
           value={metrics ? metrics.mediumRisk : '—'}
-          helper={metrics && metrics.totalZones ? `${watchPct}% elevated risk` : 'Medium-tier aggregation'}
+          helper={metrics && metrics.totalZones ? `${Math.round((metrics.mediumRisk / Math.max(metrics.totalZones, 1)) * 100)}% elevated risk` : 'Medium-tier aggregation'}
           icon={<ShieldHalf className="h-5 w-5 text-amber-500" />}
           loading={loading}
         />
@@ -219,15 +211,15 @@ type MetricTileProps = {
 function MetricTile({ title, value, helper, icon, loading, children }: MetricTileProps) {
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-sm transition hover:shadow-lg hover:shadow-emerald-600/10 dark:border-slate-800 dark:bg-slate-900/70">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{title}</div>
-          <div className="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">
+          <div className="mt-2 text-2xl sm:text-3xl font-semibold text-slate-900 dark:text-white truncate">
             {loading ? '…' : value}
           </div>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{helper}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{helper}</p>
         </div>
-        <div className="rounded-xl bg-emerald-500/10 p-2 text-emerald-500 dark:bg-emerald-500/20 dark:text-emerald-300">
+        <div className="rounded-xl bg-emerald-500/10 p-2 text-emerald-500 dark:bg-emerald-500/20 dark:text-emerald-300 shrink-0">
           {icon}
         </div>
       </div>
@@ -251,24 +243,50 @@ type MetricTileCriticalProps = {
 
 function MetricTileCritical({ high, medium, low, total, topTier, topScore, currentTier, currentScore, loading }: MetricTileCriticalProps) {
   const severity = currentTier ?? topTier
-  const tone = severity === 'HIGH' ? 'text-rose-500' : severity === 'MEDIUM' ? 'text-amber-500' : 'text-emerald-500'
   const count = severity === 'HIGH' ? high : severity === 'MEDIUM' ? medium : low
   const scorePct = Math.round((currentScore || topScore || 0) * 100)
 
+  const palette = severity === 'HIGH'
+    ? {
+        border: 'border-rose-200/70 dark:border-rose-500/20',
+        bg: 'from-rose-50 via-white to-orange-50 dark:from-rose-950 dark:via-slate-900 dark:to-amber-950',
+        iconBg: 'bg-rose-500 shadow-rose-500/30',
+        glow: 'rgba(251,113,133,0.6)',
+        label: 'text-rose-500',
+        tone: 'text-rose-500',
+      }
+    : severity === 'MEDIUM'
+    ? {
+        border: 'border-amber-200/70 dark:border-amber-500/20',
+        bg: 'from-amber-50 via-white to-yellow-50 dark:from-amber-950 dark:via-slate-900 dark:to-yellow-950',
+        iconBg: 'bg-amber-500 shadow-amber-500/30',
+        glow: 'rgba(251,191,36,0.6)',
+        label: 'text-amber-500',
+        tone: 'text-amber-500',
+      }
+    : {
+        border: 'border-emerald-200/70 dark:border-emerald-500/20',
+        bg: 'from-emerald-50 via-white to-teal-50 dark:from-emerald-950 dark:via-slate-900 dark:to-teal-950',
+        iconBg: 'bg-emerald-500 shadow-emerald-500/30',
+        glow: 'rgba(52,211,153,0.6)',
+        label: 'text-emerald-500',
+        tone: 'text-emerald-500',
+      }
+
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-rose-200/70 bg-gradient-to-br from-rose-50 via-white to-orange-50 p-5 shadow-sm dark:border-rose-500/20 dark:from-rose-950 dark:via-slate-900 dark:to-amber-950">
-      <div className="pointer-events-none absolute -top-16 -right-12 h-48 w-48 rounded-full opacity-20" style={{ background: 'radial-gradient(circle at top, rgba(251,191,36,0.6), transparent 60%)' }} />
-      <div className="relative z-10 flex items-start justify-between">
+    <div className={`relative overflow-hidden rounded-3xl border ${palette.border} bg-gradient-to-br ${palette.bg} p-4 sm:p-5 shadow-sm`}>
+      <div className="pointer-events-none absolute -top-16 -right-12 h-48 w-48 rounded-full opacity-20" style={{ background: `radial-gradient(circle at top, ${palette.glow}, transparent 60%)` }} />
+      <div className="relative z-10 flex items-start justify-between gap-2">
         <div>
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-500 text-white shadow-lg shadow-rose-500/30">
-            <AlertTriangle className="h-5 w-5" />
+          <div className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl ${palette.iconBg} text-white shadow-lg`}>
+            {severity === 'LOW' ? <ShieldCheck className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
           </div>
           <div className="mt-3 space-y-1">
-            <div className="text-xs font-semibold uppercase tracking-wide text-rose-500">Severity</div>
-            <div className="text-lg font-semibold text-slate-900 dark:text-white">{severity} risk</div>
+            <div className={`text-xs font-semibold uppercase tracking-wide ${palette.label}`}>Severity</div>
+            <div className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">{severity} risk</div>
           </div>
         </div>
-        <div className={`text-3xl font-semibold ${tone}`}>
+        <div className={`text-2xl sm:text-3xl font-semibold ${palette.tone}`}>
           {loading ? '…' : count}
         </div>
       </div>
@@ -278,17 +296,16 @@ function MetricTileCritical({ high, medium, low, total, topTier, topScore, curre
       </div>
 
       <div className="relative z-10 mt-4 flex flex-wrap items-center gap-2 text-xs">
-        <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-3 py-1 font-medium text-emerald-600 shadow-sm dark:bg-slate-900/80 dark:text-emerald-200">
+        <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 font-medium text-emerald-600 shadow-sm dark:bg-slate-900/80 dark:text-emerald-200">
           <Circle className="h-3 w-3 fill-emerald-500 text-emerald-500" /> Low {low}
         </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-3 py-1 font-medium text-amber-600 shadow-sm dark:bg-slate-900/80 dark:text-amber-200">
-          <Circle className="h-3 w-3 fill-amber-500 text-amber-500" /> Medium {medium}
+        <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 font-medium text-amber-600 shadow-sm dark:bg-slate-900/80 dark:text-amber-200">
+          <Circle className="h-3 w-3 fill-amber-500 text-amber-500" /> Med {medium}
         </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-3 py-1 font-medium text-rose-600 shadow-sm dark:bg-slate-900/80 dark:text-rose-200">
+        <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2.5 py-1 font-medium text-rose-600 shadow-sm dark:bg-slate-900/80 dark:text-rose-200">
           <Circle className="h-3 w-3 fill-rose-500 text-rose-500" /> High {high}
         </span>
       </div>
-
     </div>
   )
 }

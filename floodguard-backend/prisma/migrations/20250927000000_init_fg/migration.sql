@@ -1,3 +1,6 @@
+-- FloodGuard initial migration
+-- All tables use the "fg_" prefix to avoid conflicts in shared Supabase projects.
+
 -- CreateEnum
 CREATE TYPE "IncidentType" AS ENUM ('drain', 'citizen');
 
@@ -8,31 +11,34 @@ CREATE TYPE "Audience" AS ENUM ('ops', 'public');
 CREATE TYPE "RiskTier" AS ENUM ('SAFE', 'MEDIUM', 'HIGH');
 
 -- CreateTable
-CREATE TABLE "Forecast" (
+CREATE TABLE "fg_forecasts" (
     "id" TEXT NOT NULL,
     "zone" TEXT NOT NULL,
-    "rainProb" INTEGER NOT NULL,
-    "rainAmount" INTEGER NOT NULL,
-    "riskScore" DOUBLE PRECISION NOT NULL,
+    "rainProb" DOUBLE PRECISION NOT NULL,
+    "rainAmount" DOUBLE PRECISION,
+    "riskScore" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Forecast_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "fg_forecasts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "Incident" (
+CREATE TABLE "fg_incidents" (
     "id" TEXT NOT NULL,
     "type" "IncidentType" NOT NULL,
     "description" TEXT NOT NULL,
     "zone" TEXT NOT NULL,
     "photoUrl" TEXT,
+    "locationName" TEXT,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Incident_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "fg_incidents_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "SocialIncident" (
+CREATE TABLE "fg_social_incidents" (
     "id" TEXT NOT NULL,
     "text" TEXT NOT NULL,
     "user" TEXT NOT NULL,
@@ -40,37 +46,40 @@ CREATE TABLE "SocialIncident" (
     "riskFlag" BOOLEAN NOT NULL DEFAULT false,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "SocialIncident_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "fg_social_incidents_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "Alert" (
+CREATE TABLE "fg_alerts" (
     "id" TEXT NOT NULL,
     "audience" "Audience" NOT NULL,
     "message" TEXT NOT NULL,
     "riskTier" "RiskTier" NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Alert_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "fg_alerts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "OpsLog" (
+CREATE TABLE "fg_ops_logs" (
     "id" TEXT NOT NULL,
     "cycleId" TEXT NOT NULL,
     "step" TEXT NOT NULL,
     "status" TEXT NOT NULL,
-    "duration" INTEGER NOT NULL,
+    "durationMs" INTEGER NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "OpsLog_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "fg_ops_logs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
-CREATE INDEX "Forecast_zone_timestamp_idx" ON "Forecast"("zone", "timestamp");
+CREATE INDEX "fg_forecasts_zone_timestamp_idx" ON "fg_forecasts"("zone", "timestamp");
 
 -- CreateIndex
-CREATE INDEX "Incident_zone_timestamp_idx" ON "Incident"("zone", "timestamp");
+CREATE INDEX "fg_incidents_zone_timestamp_idx" ON "fg_incidents"("zone", "timestamp");
 
 -- CreateIndex
-CREATE INDEX "SocialIncident_zone_timestamp_idx" ON "SocialIncident"("zone", "timestamp");
+CREATE INDEX "fg_social_incidents_zone_timestamp_idx" ON "fg_social_incidents"("zone", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "fg_ops_logs_cycleId_timestamp_idx" ON "fg_ops_logs"("cycleId", "timestamp");

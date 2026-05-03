@@ -2,8 +2,10 @@
 # Docs: https://render.com/docs/blueprint-spec
 #
 # The frontend is hosted separately on Netlify (see netlify.toml).
-# Variables marked "sync: false" must be set manually in the Render dashboard
-# — the Blueprint will not override them.
+# Variables marked "sync: false" must be set manually in the Render dashboard.
+#
+# Note: migrations are NOT run here because the database was already set up
+# via the supabase_setup.sql script. The build only generates the Prisma client.
 
 services:
   - type: web
@@ -12,7 +14,7 @@ services:
     region: oregon
     plan: free
     rootDir: floodguard-backend
-    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
+    buildCommand: npm install && npx prisma generate
     startCommand: node src/index.js
     healthCheckPath: /health
     envVars:
@@ -20,16 +22,9 @@ services:
         value: production
       - key: PORT
         value: 10000
-      # Set all of these manually in the Render dashboard.
-      # "sync: false" means this file will never override what you set there.
-      #
-      # DATABASE_URL  = Supabase connection POOLER URL (port 6543)
-      #   e.g. postgresql://postgres.xxxx:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+      # DATABASE_URL = Supabase connection POOLER URL (port 6543)
+      # e.g. postgresql://postgres.xxxx:PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
       - key: DATABASE_URL
-        sync: false
-      # DIRECT_URL = Supabase DIRECT connection URL (port 5432) — used only for migrations
-      #   e.g. postgresql://postgres:PASSWORD@db.xxxx.supabase.co:5432/postgres?sslmode=require
-      - key: DIRECT_URL
         sync: false
       - key: CORS_ORIGIN
         sync: false
